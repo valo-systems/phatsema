@@ -1,0 +1,11 @@
+{
+  "type": "https://phatsema-portal.example/problems/validation",
+  "title": "The request could not be validated",
+  "status": 422,
+  "detail": "Correct the highlighted fields and try again.",
+  "instance": "/api/v1/issues",
+  "traceId": "01JZX5T9GQK4W8B2N6M3R7VDPE",
+  "errors": {
+    "lines.0.quantity": ["The requested quantity exceeds the available balance of 12 ea."]
+  }
+}

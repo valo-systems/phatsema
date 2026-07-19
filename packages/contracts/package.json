@@ -1,0 +1,20 @@
+{
+  "name": "@phatsema/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenAPI 3.1 contract of record for the Phatsema portal API",
+  "type": "module",
+  "exports": {
+    "./api": {
+      "types": "./generated/api.d.ts"
+    }
+  },
+  "scripts": {
+    "lint": "redocly lint openapi.yaml",
+    "generate": "openapi-typescript openapi.yaml -o generated/api.d.ts"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.39.0",
+    "openapi-typescript": "^7.13.0"
+  }
+}

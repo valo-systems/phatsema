@@ -1,0 +1,24 @@
+{
+  "name": "phatsema-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Phatsema back-office demonstration portal — React SPA + Laravel API monorepo",
+  "packageManager": "pnpm@10.32.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "lint": "pnpm copy:lint && pnpm --filter @phatsema/web lint && pnpm --filter @phatsema/contracts lint",
+    "copy:lint": "node scripts/check-copy-style.mjs",
+    "typecheck": "pnpm --filter @phatsema/web typecheck",
+    "test": "pnpm --filter @phatsema/web test",
+    "build": "pnpm --filter @phatsema/web build",
+    "test:e2e": "pnpm --filter @phatsema/web test:e2e",
+    "contract:lint": "pnpm --filter @phatsema/contracts lint",
+    "contract:generate": "pnpm --filter @phatsema/contracts generate",
+    "contract:check-drift": "node scripts/check-contract-drift.mjs",
+    "fixtures:validate": "node scripts/validate-fixtures.mjs",
+    "php:parse": "node scripts/php-parse-check.mjs",
+    "release": "node scripts/build-release.mjs"
+  }
+}

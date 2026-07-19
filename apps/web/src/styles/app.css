@@ -1,0 +1,231 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/*
+ * Phatsema Portal design tokens.
+ * Semantic first: features never use raw palette values.
+ * Mineral neutrals, deep graphite shell, restrained emerald primary.
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Semantic colour tokens.
+   * Canvas is deliberately deeper than surface so the data surface reads as a
+   * raised object rather than sitting flush with the page. */
+  --color-canvas: #eaedef;
+  --color-surface: #ffffff;
+  --color-raised: #ffffff;
+  --color-sunken: #f2f4f5;
+  --color-ink: #12171d;
+  --color-ink-secondary: #3d4754;
+  --color-muted: #5d6875;
+  --color-faint: #8a939e;
+  --color-line: #e2e6e9;
+  --color-line-strong: #c9cfd6;
+
+  /* Table chrome: headers are structural, not another pale band. */
+  --color-thead: #f7f9fc;
+  --color-thead-ink: #526071;
+  --color-row-hover: #f7fbfa;
+  --color-row-selected: #eef8f5;
+
+  --color-shell: #0d1726;
+  --color-shell-raised: #152235;
+  --color-shell-line: #213047;
+  --color-shell-ink: #f4f7fb;
+  --color-shell-muted: #b9c3d2;
+
+  --color-primary: #0b7a5f;
+  --color-primary-strong: #096750;
+  --color-primary-soft: #e3f2ec;
+  --color-primary-soft-ink: #085c48;
+  --color-primary-ring: #0ea47f;
+
+  --color-success: #197a3f;
+  --color-success-soft: #e5f3ea;
+  --color-warning: #99520a;
+  --color-warning-soft: #fbf0de;
+  --color-danger: #b42323;
+  --color-danger-strong: #9b1c1c;
+  --color-danger-soft: #fbe9e9;
+  --color-info: #205fbd;
+  --color-info-soft: #e7eefb;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-pill: 999px;
+
+  /* Control sizing. Every control resolves its height here; no ad-hoc h-9.
+   * `md` is the desktop default; `lg` meets the 44px touch target on mobile. */
+  --spacing-control-sm: 2rem;
+  --spacing-control-md: 2.25rem;
+  --spacing-control-lg: 2.75rem;
+
+  /* Table density */
+  --spacing-row-compact: 2rem;
+  --spacing-row-standard: 2.75rem;
+  --spacing-row-relaxed: 3.25rem;
+
+  /* Elevation */
+  --shadow-low: 0 1px 2px rgb(16 24 32 / 0.06);
+  --shadow-table: 0 10px 30px rgb(15 23 42 / 0.05);
+  --shadow-medium: 0 2px 8px rgb(16 24 32 / 0.09), 0 1px 2px rgb(16 24 32 / 0.05);
+  --shadow-overlay: 0 12px 40px rgb(12 18 26 / 0.22), 0 2px 8px rgb(12 18 26 / 0.1);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-in: fade-in 140ms var(--ease-standard);
+  --animate-slide-up: slide-up 180ms var(--ease-standard);
+  --animate-slide-down: slide-down 160ms var(--ease-standard);
+  --animate-sheet-up: sheet-up 220ms var(--ease-standard);
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
+
+/* Focus ring is a single source so every control agrees.
+ * Applied via the .focus-ring utility or :focus-visible. */
+@layer base {
+  :root {
+    --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-ring);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  /* Clear numerals for operational data */
+  .tnum, table, [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary-ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  /* Shared focus treatment for custom controls that suppress the native ring. */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Digits align on the decimal in every numeric cell and input. */
+  .numeric {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
+  }
+}
+
+@layer components {
+  /* Shared read-only detail and administration table treatment. */
+  .compact-table thead {
+    background: var(--color-thead) !important;
+    color: var(--color-thead-ink);
+    text-align: left;
+  }
+
+  .compact-table th {
+    border-bottom: 1px solid var(--color-line) !important;
+    padding: 0.7rem 1rem !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: none !important;
+    white-space: nowrap;
+  }
+
+  .compact-table td {
+    border-bottom: 1px solid var(--color-line) !important;
+    padding: 0.75rem 1rem !important;
+    vertical-align: middle;
+  }
+
+  .compact-table tbody tr {
+    transition: background-color 150ms var(--ease-standard);
+  }
+
+  .compact-table tbody tr:hover {
+    background: var(--color-row-hover);
+  }
+
+  .compact-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+  }
+
+  /* Editable transaction lines use the same chrome with room for full controls. */
+  .line-item-table thead {
+    background: var(--color-thead);
+    color: var(--color-thead-ink);
+    text-align: left;
+  }
+
+  .line-item-table th {
+    border-bottom: 1px solid var(--color-line) !important;
+    padding: 0.7rem 0.75rem !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: none !important;
+    white-space: nowrap;
+  }
+
+  .line-item-table td {
+    border-bottom: 1px solid var(--color-line) !important;
+    padding: 0.75rem !important;
+    vertical-align: middle;
+  }
+
+  .line-item-table tbody tr {
+    transition: background-color 150ms var(--ease-standard);
+  }
+
+  .line-item-table tbody tr:hover {
+    background: var(--color-row-hover);
+  }
+
+  .line-item-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+  }
+
+  .compact-table-frame:focus-visible,
+  .line-item-table-frame:focus-visible {
+    outline: none;
+    box-shadow: inset var(--focus-ring);
+  }
+}

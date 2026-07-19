@@ -1,0 +1,22 @@
+/** Permission action names matching the API contract's permission list. */
+export const P = {
+  inventoryView: 'inventory.view',
+  inventoryReceive: 'inventory.receive',
+  inventoryIssue: 'inventory.issue',
+  inventoryAdjust: 'inventory.adjust',
+  catalogueManage: 'catalogue.manage',
+  siteManage: 'site.manage',
+  transferCreate: 'transfer.create',
+  transferApprove: 'transfer.approve',
+  transferDispatch: 'transfer.dispatch',
+  transferReceive: 'transfer.receive',
+  countCreate: 'count.create',
+  countReview: 'count.review',
+  countPost: 'count.post',
+  assetView: 'asset.view',
+  assetManage: 'asset.manage',
+  reportView: 'report.view',
+  auditView: 'audit.view',
+  userManage: 'user.manage',
+  demoReset: 'demo.reset',
+} as const;

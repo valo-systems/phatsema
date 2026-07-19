@@ -1,0 +1,46 @@
+{
+  "data": {
+    "id": "01JZDEMO00000000000000TRF3",
+    "transferNumber": "DEMO-TRF-0003",
+    "sourceSiteId": "01JZDEMO0000000000000SITE1",
+    "sourceSiteName": "DEMO Brits Central Warehouse",
+    "sourceLocationId": "01JZDEMO000000000000LOC101",
+    "sourceLocationName": "Main Warehouse",
+    "destinationSiteId": "01JZDEMO0000000000000SITE3",
+    "destinationSiteName": "DEMO Mokala Mine Site",
+    "destinationLocationId": "01JZDEMO000000000000LOC301",
+    "destinationLocationName": "Site Store",
+    "status": "dispatched",
+    "requestedBy": "01JZDEMO000000000000USER04",
+    "requestedByName": "Katlego Sibanda",
+    "approvedBy": "01JZDEMO000000000000USER03",
+    "dispatchedBy": "01JZDEMO000000000000USER04",
+    "receivedBy": null,
+    "submittedAt": "2026-07-10T08:12:00Z",
+    "approvedAt": "2026-07-10T11:40:00Z",
+    "dispatchedAt": "2026-07-11T06:05:00Z",
+    "receivedAt": null,
+    "notes": "Dust-suppression top-up for the north haul road.",
+    "hasDiscrepancy": false,
+    "lines": [
+      {
+        "id": "01JZDEMO000000000000TRL301",
+        "itemId": "01JZDEMO000000000000ITEM01",
+        "itemSku": "DEMO-CHM-S10-210",
+        "itemName": "GRDC S10 dust suppressant, 210 L drum",
+        "unit": "drum",
+        "requestedQuantity": "6",
+        "dispatchedQuantity": "6",
+        "receivedQuantity": null,
+        "rejectedQuantity": null,
+        "discrepancyReason": null
+      }
+    ],
+    "timeline": [
+      { "status": "submitted", "at": "2026-07-10T08:12:00Z", "byUserId": "01JZDEMO000000000000USER04", "byName": "Katlego Sibanda", "note": null },
+      { "status": "approved", "at": "2026-07-10T11:40:00Z", "byUserId": "01JZDEMO000000000000USER03", "byName": "Naledi Mokoena", "note": null },
+      { "status": "dispatched", "at": "2026-07-11T06:05:00Z", "byUserId": "01JZDEMO000000000000USER04", "byName": "Katlego Sibanda", "note": "DEMO-WB-8821 waybill" }
+    ],
+    "version": 4
+  }
+}

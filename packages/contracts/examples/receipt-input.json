@@ -1,0 +1,11 @@
+{
+  "siteId": "01JZDEMO0000000000000SITE2",
+  "locationId": "01JZDEMO000000000000LOC201",
+  "reference": "DEMO-DN-4471",
+  "receivedAt": "2026-07-15",
+  "notes": "Delivery checked against DEMO supplier note.",
+  "lines": [
+    { "itemId": "01JZDEMO000000000000ITEM01", "quantity": "400.000", "batchCode": "DEMO-B-2607" },
+    { "itemId": "01JZDEMO000000000000ITEM07", "quantity": "12" }
+  ]
+}

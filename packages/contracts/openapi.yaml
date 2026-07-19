@@ -1,0 +1,2883 @@
+openapi: 3.1.0
+info:
+  title: Phatsema Portal API
+  version: 1.0.0
+  description: |
+    Versioned JSON API for the Phatsema back-office demonstration portal.
+    Session-cookie authentication, Problem Details errors, decimal-string quantities,
+    ULID identifiers, and immutable inventory ledger semantics.
+    All demo records carry a `DEMO-` prefix on visible identifiers.
+servers:
+  - url: /api/v1
+tags:
+  - name: Auth
+    description: Session authentication and the current demo persona.
+  - name: Demo
+    description: Reset and manage the isolated demonstration state.
+  - name: Dashboard
+    description: Operational summaries and activity indicators.
+  - name: Reference
+    description: Controlled categories, units, and reason codes.
+  - name: Sites
+    description: Sites, warehouses, and storage locations.
+  - name: Items
+    description: Inventory catalogue and item master data.
+  - name: Inventory
+    description: Stock balances and immutable movement history.
+  - name: StockActions
+    description: Receipts, issues, adjustments, and reversals.
+  - name: Transfers
+    description: Controlled inter-site stock transfers.
+  - name: Counts
+    description: Stock counts, variance review, and posting.
+  - name: Assets
+    description: Lightweight controlled-asset register.
+  - name: Alerts
+    description: Operational exceptions and user notifications.
+  - name: Reports
+    description: Read-only operational reports and CSV-ready data.
+  - name: Audit
+    description: Immutable records of state-changing actions.
+  - name: System
+    description: Application health and version diagnostics.
+
+security:
+  - cookieAuth: []
+
+paths:
+  /csrf-cookie:
+    get:
+      operationId: getCsrfCookie
+      tags: [Auth]
+      summary: Establish the CSRF cookie and session
+      security: []
+      responses:
+        '204':
+          description: CSRF cookie set
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: Authenticate a demo user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200':
+          description: Authenticated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [Auth]
+      summary: End the current session
+      responses:
+        '204': { description: Session ended }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      operationId: currentUser
+      tags: [Auth]
+      summary: Current user, roles, permissions, and assigned sites
+      responses:
+        '200':
+          description: Current session user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /profile:
+    patch:
+      operationId: updateCurrentProfile
+      tags: [Auth]
+      summary: Update the authenticated user's personal work profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileUpdate' }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /profile/password:
+    post:
+      operationId: changeCurrentPassword
+      tags: [Auth]
+      summary: Change the authenticated user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasswordChange' }
+      responses:
+        '200':
+          description: Password changed and current session retained
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [Auth]
+      summary: List managed users
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/User' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createUser
+      tags: [Auth]
+      summary: Create a user with role and site access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserInput' }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Ulid' }
+    patch:
+      operationId: updateUser
+      tags: [Auth]
+      summary: Update role, site access, status, or temporary password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdate' }
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /roles:
+    get:
+      operationId: listRoles
+      tags: [Auth]
+      summary: List protected system roles and permissions
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Role' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /demo/reset:
+    post:
+      operationId: resetDemo
+      tags: [Demo]
+      summary: Reset current demo state to the original fixtures (administrator only)
+      responses:
+        '200':
+          description: Demo state reset
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [fixtureVersion, resetAt]
+                    properties:
+                      fixtureVersion: { type: string }
+                      resetAt: { $ref: '#/components/schemas/Timestamp' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [Dashboard]
+      summary: Role- and filter-aware dashboard summary
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: days
+          in: query
+          description: Trailing window in days for trend data
+          schema: { type: integer, minimum: 7, maximum: 90, default: 30 }
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Dashboard' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reference/item-categories:
+    get:
+      operationId: listItemCategories
+      tags: [Reference]
+      summary: Item-category options
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ItemCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reference/units:
+    get:
+      operationId: listUnits
+      tags: [Reference]
+      summary: Unit-of-measure options
+      responses:
+        '200':
+          description: Units
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Unit' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reference/reasons:
+    get:
+      operationId: listReasons
+      tags: [Reference]
+      summary: Adjustment, discrepancy, and reversal reasons
+      responses:
+        '200':
+          description: Reason codes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReasonCode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reference/departments:
+    get:
+      operationId: listDepartments
+      tags: [Reference]
+      summary: List controlled employee departments
+      responses:
+        '200':
+          description: Departments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Department' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /sites:
+    get:
+      operationId: listSites
+      tags: [Sites]
+      summary: Filtered site list
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/q'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ActiveStatus' }
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/SiteType' }
+      responses:
+        '200':
+          description: Sites page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Site' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createSite
+      tags: [Sites]
+      summary: Create site
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SiteInput' }
+      responses:
+        '201':
+          description: Site created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SiteEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /sites/{siteId}:
+    parameters:
+      - $ref: '#/components/parameters/siteId'
+    get:
+      operationId: getSite
+      tags: [Sites]
+      summary: Site detail and summary
+      responses:
+        '200':
+          description: Site detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/SiteDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateSite
+      tags: [Sites]
+      summary: Update permitted site fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SiteUpdate' }
+      responses:
+        '200':
+          description: Updated site
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SiteEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /sites/{siteId}/locations:
+    parameters:
+      - $ref: '#/components/parameters/siteId'
+    get:
+      operationId: listSiteLocations
+      tags: [Sites]
+      summary: Site storage locations
+      responses:
+        '200':
+          description: Locations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Location' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createLocation
+      tags: [Sites]
+      summary: Create location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocationInput' }
+      responses:
+        '201':
+          description: Location created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /locations/{locationId}:
+    parameters:
+      - $ref: '#/components/parameters/locationId'
+    patch:
+      operationId: updateLocation
+      tags: [Sites]
+      summary: Update location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LocationUpdate' }
+      responses:
+        '200':
+          description: Updated location
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /items:
+    get:
+      operationId: listItems
+      tags: [Items]
+      summary: Search and filter the item catalogue
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: categoryId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - name: inventoryType
+          in: query
+          schema: { $ref: '#/components/schemas/InventoryType' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ActiveStatus' }
+        - name: stockHealth
+          in: query
+          schema: { $ref: '#/components/schemas/StockHealth' }
+      responses:
+        '200':
+          description: Items page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ItemSummary' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createItem
+      tags: [Items]
+      summary: Create an item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemInput' }
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/itemId'
+    get:
+      operationId: getItem
+      tags: [Items]
+      summary: Item detail
+      responses:
+        '200':
+          description: Item detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/ItemDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateItem
+      tags: [Items]
+      summary: Update mutable item fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ItemUpdate' }
+      responses:
+        '200':
+          description: Updated item
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /items/{itemId}/balances:
+    parameters:
+      - $ref: '#/components/parameters/itemId'
+    get:
+      operationId: getItemBalances
+      tags: [Items]
+      summary: Item balance by site and location
+      responses:
+        '200':
+          description: Balances for the item
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockBalance' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /balances:
+    get:
+      operationId: listBalances
+      tags: [Inventory]
+      summary: Network balance search
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: locationId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - name: itemId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - name: stockHealth
+          in: query
+          schema: { $ref: '#/components/schemas/StockHealth' }
+      responses:
+        '200':
+          description: Balances page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockBalance' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /movements:
+    get:
+      operationId: listMovements
+      tags: [Inventory]
+      summary: Immutable ledger search
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: itemId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - name: movementType
+          in: query
+          schema: { $ref: '#/components/schemas/MovementType' }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Movements page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Movement' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /movements/{movementId}:
+    parameters:
+      - $ref: '#/components/parameters/movementId'
+    get:
+      operationId: getMovement
+      tags: [Inventory]
+      summary: Movement detail
+      responses:
+        '200':
+          description: Movement detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Movement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /movements/{movementId}/reverse:
+    parameters:
+      - $ref: '#/components/parameters/movementId'
+    post:
+      operationId: reverseMovement
+      tags: [StockActions]
+      summary: Create a reversing movement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReversalInput' }
+      responses:
+        '201':
+          description: Reversal posted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MovementListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /receipts:
+    post:
+      operationId: postReceipt
+      tags: [StockActions]
+      summary: Post a stock receipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReceiptInput' }
+      responses:
+        '201':
+          description: Receipt posted; returns the created movements
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MovementListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /issues:
+    post:
+      operationId: postIssue
+      tags: [StockActions]
+      summary: Post a stock issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IssueInput' }
+      responses:
+        '201':
+          description: Issue posted; returns the created movements
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MovementListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /adjustments:
+    post:
+      operationId: postAdjustment
+      tags: [StockActions]
+      summary: Post a stock adjustment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdjustmentInput' }
+      responses:
+        '201':
+          description: Adjustment posted; returns the created movement
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MovementListEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers:
+    get:
+      operationId: listTransfers
+      tags: [Transfers]
+      summary: Search the transfer queue
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/q'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TransferStatus' }
+        - name: view
+          in: query
+          description: Operational grouping
+          schema: { type: string, enum: [action, in_transit, completed, all] }
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Transfers page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Transfer' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createTransfer
+      tags: [Transfers]
+      summary: Create a draft transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferInput' }
+      responses:
+        '201':
+          description: Draft transfer created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers/{transferId}:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    get:
+      operationId: getTransfer
+      tags: [Transfers]
+      summary: Transfer detail and timeline
+      responses:
+        '200':
+          description: Transfer detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateTransfer
+      tags: [Transfers]
+      summary: Edit a draft transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferUpdate' }
+      responses:
+        '200':
+          description: Updated transfer
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers/{transferId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    post:
+      operationId: submitTransfer
+      tags: [Transfers]
+      summary: Submit the transfer and reserve stock
+      requestBody: { $ref: '#/components/requestBodies/VersionedAction' }
+      responses:
+        '200':
+          description: Transfer submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers/{transferId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    post:
+      operationId: approveTransfer
+      tags: [Transfers]
+      summary: Approve the transfer
+      requestBody: { $ref: '#/components/requestBodies/VersionedAction' }
+      responses:
+        '200':
+          description: Transfer approved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /transfers/{transferId}/dispatch:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    post:
+      operationId: dispatchTransfer
+      tags: [Transfers]
+      summary: Dispatch and create in-transit movements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferDispatchInput' }
+      responses:
+        '200':
+          description: Transfer dispatched
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers/{transferId}/receive:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    post:
+      operationId: receiveTransfer
+      tags: [Transfers]
+      summary: Receive accepted quantities and record discrepancies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferReceiveInput' }
+      responses:
+        '200':
+          description: Transfer received
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /transfers/{transferId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/transferId'
+    post:
+      operationId: cancelTransfer
+      tags: [Transfers]
+      summary: Cancel the transfer where state allows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferCancelInput' }
+      responses:
+        '200':
+          description: Transfer cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TransferEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /counts:
+    get:
+      operationId: listCounts
+      tags: [Counts]
+      summary: Search stock counts
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CountStatus' }
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Counts page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockCount' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createCount
+      tags: [Counts]
+      summary: Create a draft count
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CountInput' }
+      responses:
+        '201':
+          description: Draft count created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /counts/{countId}:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    get:
+      operationId: getCount
+      tags: [Counts]
+      summary: Count detail and progress
+      responses:
+        '200':
+          description: Count detail; expected quantities are omitted for blind counters
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateCount
+      tags: [Counts]
+      summary: Edit permitted count fields while draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CountUpdate' }
+      responses:
+        '200':
+          description: Updated count
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /counts/{countId}/start:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: startCount
+      tags: [Counts]
+      summary: Snapshot scope and begin counting
+      requestBody: { $ref: '#/components/requestBodies/VersionedAction' }
+      responses:
+        '200':
+          description: Count started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /counts/{countId}/entries:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: saveCountEntries
+      tags: [Counts]
+      summary: Save counted quantities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CountEntriesInput' }
+      responses:
+        '200':
+          description: Entries saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /counts/{countId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: submitCount
+      tags: [Counts]
+      summary: Submit the count for review
+      requestBody: { $ref: '#/components/requestBodies/VersionedAction' }
+      responses:
+        '200':
+          description: Count submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /counts/{countId}/request-recount:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: requestRecount
+      tags: [Counts]
+      summary: Request a recount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CountReviewInput' }
+      responses:
+        '200':
+          description: Recount requested
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /counts/{countId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: approveCount
+      tags: [Counts]
+      summary: Approve variances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CountReviewInput' }
+      responses:
+        '200':
+          description: Count approved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /counts/{countId}/post:
+    parameters:
+      - $ref: '#/components/parameters/countId'
+    post:
+      operationId: postCount
+      tags: [Counts]
+      summary: Post variance movements to the ledger
+      requestBody: { $ref: '#/components/requestBodies/VersionedAction' }
+      responses:
+        '200':
+          description: Variances posted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CountEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [Assets]
+      summary: Search the asset register
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/q'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/AssetStatus' }
+        - name: type
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Assets page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Asset' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createAsset
+      tags: [Assets]
+      summary: Create a demo asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssetInput' }
+      responses:
+        '201':
+          description: Asset created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /assets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/assetId'
+    get:
+      operationId: getAsset
+      tags: [Assets]
+      summary: Asset detail and history
+      responses:
+        '200':
+          description: Asset detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/AssetDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateAsset
+      tags: [Assets]
+      summary: Update mutable asset fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssetUpdate' }
+      responses:
+        '200':
+          description: Updated asset
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /assets/{assetId}/assign:
+    parameters:
+      - $ref: '#/components/parameters/assetId'
+    post:
+      operationId: assignAsset
+      tags: [Assets]
+      summary: Assign or move the asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssetAssignInput' }
+      responses:
+        '200':
+          description: Asset assigned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /assets/{assetId}/status:
+    parameters:
+      - $ref: '#/components/parameters/assetId'
+    post:
+      operationId: changeAssetStatus
+      tags: [Assets]
+      summary: Controlled status transition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssetStatusInput' }
+      responses:
+        '200':
+          description: Status changed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /assets/{assetId}/meter-reading:
+    parameters:
+      - $ref: '#/components/parameters/assetId'
+    post:
+      operationId: recordMeterReading
+      tags: [Assets]
+      summary: Record a meter reading
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeterReadingInput' }
+      responses:
+        '200':
+          description: Reading recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssetEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationProblem' }
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [Alerts]
+      summary: Current user's alerts
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Alert' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /alerts/{alertId}/read:
+    parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Ulid' }
+    post:
+      operationId: markAlertRead
+      tags: [Alerts]
+      summary: Mark an alert read
+      responses:
+        '200':
+          description: Alert updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Alert' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reports/stock-on-hand:
+    get:
+      operationId: reportStockOnHand
+      tags: [Reports]
+      summary: Stock on hand by site and category
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: categoryId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+      responses:
+        '200':
+          description: Stock-on-hand rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/StockOnHandRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reports/movements:
+    get:
+      operationId: reportMovements
+      tags: [Reports]
+      summary: Movement summary by period and type
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Movement summary rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MovementSummaryRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reports/transfers:
+    get:
+      operationId: reportTransfers
+      tags: [Reports]
+      summary: Transfer performance and discrepancies
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Transfer performance rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/TransferReportRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reports/count-variances:
+    get:
+      operationId: reportCountVariances
+      tags: [Reports]
+      summary: Stock-count variance report
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Variance rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/CountVarianceRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reports/assets:
+    get:
+      operationId: reportAssets
+      tags: [Reports]
+      summary: Asset status and service-due report
+      parameters:
+        - $ref: '#/components/parameters/siteIdFilter'
+      responses:
+        '200':
+          description: Asset report rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AssetReportRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /audit-events:
+    get:
+      operationId: listAuditEvents
+      tags: [Audit]
+      summary: Filtered audit search
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - name: actorUserId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: resourceType
+          in: query
+          schema: { type: string }
+        - name: resourceId
+          in: query
+          schema: { $ref: '#/components/schemas/Ulid' }
+        - $ref: '#/components/parameters/siteIdFilter'
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Audit page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditEvent' }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /audit-events/{eventId}:
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Ulid' }
+    get:
+      operationId: getAuditEvent
+      tags: [Audit]
+      summary: Audit-event detail
+      responses:
+        '200':
+          description: Audit event
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/AuditEvent' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /health:
+    get:
+      operationId: health
+      tags: [System]
+      summary: Version and application health
+      security: []
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [status, version, fixtureVersion, time]
+                    properties:
+                      status: { type: string, enum: [ok] }
+                      version: { type: string }
+                      fixtureVersion: { type: string }
+                      time: { $ref: '#/components/schemas/Timestamp' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: phatsema_session
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    pageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    sort:
+      name: sort
+      in: query
+      description: Sort key; prefix with '-' for descending. Unknown keys are rejected with 422.
+      schema: { type: string }
+    q:
+      name: q
+      in: query
+      description: Free-text search
+      schema: { type: string, maxLength: 120 }
+    siteIdFilter:
+      name: siteId
+      in: query
+      schema: { $ref: '#/components/schemas/Ulid' }
+    siteId:
+      name: siteId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    locationId:
+      name: locationId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    itemId:
+      name: itemId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    movementId:
+      name: movementId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    transferId:
+      name: transferId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    countId:
+      name: countId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+    assetId:
+      name: assetId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Ulid' }
+
+  requestBodies:
+    VersionedAction:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version]
+            properties:
+              version: { type: integer, minimum: 1 }
+
+  responses:
+    Unauthorized:
+      description: No valid authenticated session
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Authenticated but not authorised
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Resource does not exist or is not visible to the user
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: State transition or optimistic-concurrency conflict
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationProblem:
+      description: Validation or business-rule failure
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ValidationProblem' }
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    Ulid:
+      type: string
+      pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+      examples: ['01JZX5T9GQK4W8B2N6M3R7VDPE']
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: ISO 8601 UTC timestamp
+
+    Quantity:
+      type: string
+      pattern: '^\d{1,10}(\.\d{1,3})?$'
+      description: Non-negative decimal quantity with up to 3 decimal places, transported as a string
+
+    SignedQuantity:
+      type: string
+      pattern: '^-?\d{1,10}(\.\d{1,3})?$'
+      description: Signed decimal quantity with up to 3 decimal places, transported as a string
+
+    Money:
+      type: string
+      pattern: '^-?\d{1,12}(\.\d{1,2})?$'
+      description: Decimal monetary amount in ZAR, transported as a string (demo values are fictional)
+
+    Version:
+      type: integer
+      minimum: 1
+      description: Optimistic-concurrency version
+
+    ActiveStatus:
+      type: string
+      enum: [active, inactive]
+
+    SiteType:
+      type: string
+      enum: [head_office, warehouse, mine_site, workshop, fabrication, depot]
+
+    LocationType:
+      type: string
+      enum: [warehouse, yard, workshop, cage, tank, vehicle_store, bin]
+
+    InventoryType:
+      type: string
+      enum: [saleable, consumable, raw_material, spare_part, installation_component]
+
+    TrackingMode:
+      type: string
+      enum: [quantity, batch, serial]
+
+    OwnershipMode:
+      type: string
+      enum: [company_owned, consignment, client_owned]
+
+    StockHealth:
+      type: string
+      enum: [healthy, low, out_of_stock, excess, quarantined]
+
+    MovementType:
+      type: string
+      enum:
+        - opening_balance
+        - receipt
+        - issue
+        - transfer_dispatch
+        - transfer_receipt
+        - adjustment_increase
+        - adjustment_decrease
+        - count_variance
+        - reversal
+
+    TransferStatus:
+      type: string
+      enum: [draft, submitted, approved, dispatched, received, cancelled]
+
+    CountStatus:
+      type: string
+      enum: [draft, in_progress, submitted, recount_required, reviewed, posted]
+
+    AssetStatus:
+      type: string
+      enum: [available, assigned, on_hire, in_maintenance, out_of_service, retired]
+
+    AlertType:
+      type: string
+      enum:
+        - low_stock
+        - out_of_stock
+        - transfer_awaiting_approval
+        - transfer_overdue
+        - count_variance_review
+        - asset_service_due
+        - asset_service_overdue
+        - demo_session_expiry
+
+    AlertSeverity:
+      type: string
+      enum: [info, warning, critical]
+
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        traceId: { type: string }
+
+    ValidationProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        sort: { type: string }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 100 }
+
+    User:
+      type: object
+      required: [id, name, preferredName, workPhone, jobTitle, departmentCode, bio, email, status, roles, permissions, assignedSiteIds, allSites, lastLoginAt, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        name: { type: string }
+        preferredName:
+          anyOf: [{ type: string, maxLength: 80 }, { type: 'null' }]
+        workPhone:
+          anyOf: [{ type: string, maxLength: 32 }, { type: 'null' }]
+        jobTitle:
+          anyOf: [{ type: string, maxLength: 120 }, { type: 'null' }]
+        departmentCode:
+          anyOf: [{ type: string }, { type: 'null' }]
+        bio:
+          anyOf: [{ type: string, maxLength: 500 }, { type: 'null' }]
+        email: { type: string, format: email }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        permissions:
+          type: array
+          items: { type: string }
+        assignedSiteIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        allSites:
+          type: boolean
+          description: True when the user may view every site
+        lastLoginAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        version: { $ref: '#/components/schemas/Version' }
+
+    UserEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/User' }
+
+    UserInput:
+      type: object
+      required: [name, email, temporaryPassword, role, allSites, assignedSiteIds]
+      properties:
+        name: { type: string, maxLength: 120 }
+        preferredName:
+          anyOf: [{ type: string, maxLength: 80 }, { type: 'null' }]
+        workPhone:
+          anyOf: [{ type: string, maxLength: 32 }, { type: 'null' }]
+        jobTitle:
+          anyOf: [{ type: string, maxLength: 120 }, { type: 'null' }]
+        departmentCode:
+          anyOf: [{ type: string }, { type: 'null' }]
+        bio:
+          anyOf: [{ type: string, maxLength: 500 }, { type: 'null' }]
+        email: { type: string, format: email, maxLength: 160 }
+        temporaryPassword: { type: string, minLength: 12, maxLength: 100 }
+        role: { type: string, enum: [system_administrator, operations_manager, site_manager, storekeeper, executive_viewer] }
+        allSites: { type: boolean }
+        assignedSiteIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+
+    UserUpdate:
+      type: object
+      required: [version]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        name: { type: string, maxLength: 120 }
+        preferredName:
+          anyOf: [{ type: string, maxLength: 80 }, { type: 'null' }]
+        workPhone:
+          anyOf: [{ type: string, maxLength: 32 }, { type: 'null' }]
+        jobTitle:
+          anyOf: [{ type: string, maxLength: 120 }, { type: 'null' }]
+        departmentCode:
+          anyOf: [{ type: string }, { type: 'null' }]
+        bio:
+          anyOf: [{ type: string, maxLength: 500 }, { type: 'null' }]
+        temporaryPassword: { type: string, minLength: 12, maxLength: 100 }
+        role: { type: string, enum: [system_administrator, operations_manager, site_manager, storekeeper, executive_viewer] }
+        allSites: { type: boolean }
+        assignedSiteIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+
+    ProfileUpdate:
+      type: object
+      additionalProperties: false
+      required: [version, name]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        preferredName:
+          anyOf: [{ type: string, maxLength: 80 }, { type: 'null' }]
+        workPhone:
+          anyOf: [{ type: string, maxLength: 32 }, { type: 'null' }]
+        bio:
+          anyOf: [{ type: string, maxLength: 500 }, { type: 'null' }]
+
+    PasswordChange:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword, newPasswordConfirmation]
+      properties:
+        currentPassword: { type: string, minLength: 1, maxLength: 100 }
+        newPassword: { type: string, minLength: 12, maxLength: 100 }
+        newPasswordConfirmation: { type: string, minLength: 12, maxLength: 100 }
+
+    Role:
+      type: object
+      required: [id, name, permissions, isSystemRole]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        name: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        isSystemRole: { type: boolean }
+
+    ItemCategory:
+      type: object
+      required: [id, code, name]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        code: { type: string }
+        name: { type: string }
+
+    Unit:
+      type: object
+      required: [code, name, precision]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        precision: { type: integer, minimum: 0, maximum: 3 }
+
+    ReasonCode:
+      type: object
+      required: [code, name, appliesTo]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        appliesTo:
+          type: array
+          items: { type: string, enum: [adjustment, discrepancy, reversal, count] }
+
+    Department:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+
+    Site:
+      type: object
+      required: [id, code, name, entityCode, type, countryCode, timezone, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        code: { type: string }
+        name: { type: string }
+        entityCode: { type: string }
+        type: { $ref: '#/components/schemas/SiteType' }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        timezone: { type: string }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        contactName: { type: string }
+        contactPhone: { type: string }
+        version: { $ref: '#/components/schemas/Version' }
+
+    SiteDetail:
+      allOf:
+        - $ref: '#/components/schemas/Site'
+        - type: object
+          required: [locationCount, itemCount, stockValue, openTransferCount, assetCount]
+          properties:
+            locationCount: { type: integer }
+            itemCount: { type: integer }
+            stockValue: { $ref: '#/components/schemas/Money' }
+            openTransferCount: { type: integer }
+            assetCount: { type: integer }
+
+    SiteEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Site' }
+
+    SiteInput:
+      type: object
+      required: [name, entityCode, type, countryCode, timezone]
+      properties:
+        name: { type: string, maxLength: 120 }
+        entityCode:
+          type: string
+          enum: [PHATSEMA_PROJECTS, PHATSEMA_MINING]
+        type: { $ref: '#/components/schemas/SiteType' }
+        countryCode: { type: string, minLength: 2, maxLength: 2 }
+        timezone: { type: string }
+        contactName: { type: string, maxLength: 120 }
+        contactPhone: { type: string, maxLength: 40 }
+
+    SiteUpdate:
+      type: object
+      required: [version]
+      properties:
+        name: { type: string, maxLength: 120 }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        contactName: { type: string, maxLength: 120 }
+        contactPhone: { type: string, maxLength: 40 }
+        version: { $ref: '#/components/schemas/Version' }
+
+    Location:
+      type: object
+      required: [id, siteId, code, name, type, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        parentLocationId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        code: { type: string }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/LocationType' }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        allowsNegativeStock: { type: boolean, const: false }
+        version: { $ref: '#/components/schemas/Version' }
+
+    LocationEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Location' }
+
+    LocationInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, maxLength: 120 }
+        type: { $ref: '#/components/schemas/LocationType' }
+        parentLocationId: { $ref: '#/components/schemas/Ulid' }
+
+    LocationUpdate:
+      type: object
+      required: [version]
+      properties:
+        name: { type: string, maxLength: 120 }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    ItemCore:
+      type: object
+      required: [id, sku, name, categoryId, categoryName, inventoryType, baseUnit, trackingMode, ownershipMode, status, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        sku: { type: string }
+        name: { type: string }
+        description: { type: string }
+        categoryId: { $ref: '#/components/schemas/Ulid' }
+        categoryName: { type: string }
+        inventoryType: { $ref: '#/components/schemas/InventoryType' }
+        baseUnit: { type: string }
+        trackingMode: { $ref: '#/components/schemas/TrackingMode' }
+        ownershipMode: { $ref: '#/components/schemas/OwnershipMode' }
+        reorderPoint:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        targetLevel:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    ItemSummary:
+      allOf:
+        - $ref: '#/components/schemas/ItemCore'
+        - type: object
+          required: [totalOnHand, totalAvailable, stockHealth]
+          properties:
+            totalOnHand: { $ref: '#/components/schemas/Quantity' }
+            totalAvailable: { $ref: '#/components/schemas/Quantity' }
+            stockHealth: { $ref: '#/components/schemas/StockHealth' }
+
+    ItemDetail:
+      allOf:
+        - $ref: '#/components/schemas/ItemSummary'
+        - type: object
+          required: [totalReserved, totalInTransit, totalQuarantined]
+          properties:
+            totalReserved: { $ref: '#/components/schemas/Quantity' }
+            totalInTransit: { $ref: '#/components/schemas/Quantity' }
+            totalQuarantined: { $ref: '#/components/schemas/Quantity' }
+
+    ItemEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/ItemCore' }
+
+    ItemInput:
+      type: object
+      required: [name, categoryId, inventoryType, baseUnit, trackingMode, ownershipMode]
+      properties:
+        name: { type: string, maxLength: 160 }
+        description: { type: string, maxLength: 2000 }
+        categoryId: { $ref: '#/components/schemas/Ulid' }
+        inventoryType: { $ref: '#/components/schemas/InventoryType' }
+        baseUnit: { type: string, maxLength: 10 }
+        trackingMode: { $ref: '#/components/schemas/TrackingMode' }
+        ownershipMode: { $ref: '#/components/schemas/OwnershipMode' }
+        reorderPoint: { $ref: '#/components/schemas/Quantity' }
+        targetLevel: { $ref: '#/components/schemas/Quantity' }
+
+    ItemUpdate:
+      type: object
+      required: [version]
+      properties:
+        name: { type: string, maxLength: 160 }
+        description: { type: string, maxLength: 2000 }
+        categoryId: { $ref: '#/components/schemas/Ulid' }
+        reorderPoint:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        targetLevel:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    StockBalance:
+      type: object
+      required: [itemId, itemSku, itemName, unit, siteId, siteName, locationId, locationName, onHand, reserved, inTransit, quarantined, available, stockHealth]
+      properties:
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        itemSku: { type: string }
+        itemName: { type: string }
+        unit: { type: string }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        siteName: { type: string }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        locationName: { type: string }
+        batchId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        onHand: { $ref: '#/components/schemas/Quantity' }
+        reserved: { $ref: '#/components/schemas/Quantity' }
+        inTransit: { $ref: '#/components/schemas/Quantity' }
+        quarantined: { $ref: '#/components/schemas/Quantity' }
+        available: { $ref: '#/components/schemas/Quantity' }
+        stockHealth: { $ref: '#/components/schemas/StockHealth' }
+
+    Movement:
+      type: object
+      required: [id, sequence, occurredAt, postedAt, movementType, itemId, itemSku, itemName, quantity, unit, referenceType, referenceId, referenceLabel, actorUserId, actorName, resultingBalance]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        sequence: { type: integer }
+        occurredAt: { $ref: '#/components/schemas/Timestamp' }
+        postedAt: { $ref: '#/components/schemas/Timestamp' }
+        movementType: { $ref: '#/components/schemas/MovementType' }
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        itemSku: { type: string }
+        itemName: { type: string }
+        quantity: { $ref: '#/components/schemas/SignedQuantity' }
+        unit: { type: string }
+        sourceSiteId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        sourceSiteName: { anyOf: [{ type: string }, { type: 'null' }] }
+        sourceLocationId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        sourceLocationName: { anyOf: [{ type: string }, { type: 'null' }] }
+        destinationSiteId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        destinationSiteName: { anyOf: [{ type: string }, { type: 'null' }] }
+        destinationLocationId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        destinationLocationName: { anyOf: [{ type: string }, { type: 'null' }] }
+        batchId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        referenceType: { type: string }
+        referenceId: { type: string }
+        referenceLabel: { type: string }
+        reasonCode: { anyOf: [{ type: string }, { type: 'null' }] }
+        notes: { anyOf: [{ type: string }, { type: 'null' }] }
+        actorUserId: { $ref: '#/components/schemas/Ulid' }
+        actorName: { type: string }
+        reversalOfId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        reversedById:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        resultingBalance: { $ref: '#/components/schemas/Quantity' }
+        auditEventId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+
+    MovementListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Movement' }
+
+    ReceiptLineInput:
+      type: object
+      required: [itemId, quantity]
+      properties:
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+        batchCode: { type: string, maxLength: 40 }
+
+    ReceiptInput:
+      type: object
+      required: [siteId, locationId, reference, receivedAt, lines]
+      properties:
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        reference: { type: string, maxLength: 60, description: 'Supplier or delivery reference' }
+        receivedAt: { type: string, format: date }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/ReceiptLineInput' }
+
+    IssueLineInput:
+      type: object
+      required: [itemId, quantity]
+      properties:
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+
+    IssueInput:
+      type: object
+      required: [siteId, locationId, purpose, recipient, lines]
+      properties:
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        purpose:
+          type: string
+          enum: [site_consumption, project, maintenance, fabrication_job, cost_centre]
+        reference: { type: string, maxLength: 60, description: 'Project, job, asset, or cost-centre reference' }
+        recipient: { type: string, maxLength: 120 }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/IssueLineInput' }
+
+    AdjustmentInput:
+      type: object
+      required: [siteId, locationId, itemId, direction, quantity, reasonCode, adjustedAt]
+      properties:
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        direction: { type: string, enum: [increase, decrease] }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+        reasonCode: { type: string }
+        adjustedAt: { type: string, format: date }
+        notes: { type: string, maxLength: 1000, description: Evidence notes }
+
+    ReversalInput:
+      type: object
+      required: [reasonCode]
+      properties:
+        reasonCode: { type: string }
+        notes: { type: string, maxLength: 1000 }
+
+    TransferLine:
+      type: object
+      required: [id, itemId, itemSku, itemName, unit, requestedQuantity]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        itemSku: { type: string }
+        itemName: { type: string }
+        unit: { type: string }
+        requestedQuantity: { $ref: '#/components/schemas/Quantity' }
+        dispatchedQuantity:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        receivedQuantity:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        rejectedQuantity:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        discrepancyReason: { anyOf: [{ type: string }, { type: 'null' }] }
+
+    TransferEvent:
+      type: object
+      required: [status, at, byUserId, byName]
+      properties:
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        at: { $ref: '#/components/schemas/Timestamp' }
+        byUserId: { $ref: '#/components/schemas/Ulid' }
+        byName: { type: string }
+        note: { anyOf: [{ type: string }, { type: 'null' }] }
+
+    Transfer:
+      type: object
+      required: [id, transferNumber, sourceSiteId, sourceSiteName, sourceLocationId, sourceLocationName, destinationSiteId, destinationSiteName, destinationLocationId, destinationLocationName, status, requestedBy, requestedByName, lines, timeline, hasDiscrepancy, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        transferNumber: { type: string }
+        sourceSiteId: { $ref: '#/components/schemas/Ulid' }
+        sourceSiteName: { type: string }
+        sourceLocationId: { $ref: '#/components/schemas/Ulid' }
+        sourceLocationName: { type: string }
+        destinationSiteId: { $ref: '#/components/schemas/Ulid' }
+        destinationSiteName: { type: string }
+        destinationLocationId: { $ref: '#/components/schemas/Ulid' }
+        destinationLocationName: { type: string }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        requestedBy: { $ref: '#/components/schemas/Ulid' }
+        requestedByName: { type: string }
+        approvedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        dispatchedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        receivedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        submittedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        approvedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        dispatchedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        receivedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        notes: { anyOf: [{ type: string }, { type: 'null' }] }
+        hasDiscrepancy: { type: boolean }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/TransferLine' }
+        timeline:
+          type: array
+          items: { $ref: '#/components/schemas/TransferEvent' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    TransferEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Transfer' }
+
+    TransferLineInput:
+      type: object
+      required: [itemId, requestedQuantity]
+      properties:
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        requestedQuantity: { $ref: '#/components/schemas/Quantity' }
+
+    TransferInput:
+      type: object
+      required: [sourceSiteId, sourceLocationId, destinationSiteId, destinationLocationId, lines]
+      properties:
+        sourceSiteId: { $ref: '#/components/schemas/Ulid' }
+        sourceLocationId: { $ref: '#/components/schemas/Ulid' }
+        destinationSiteId: { $ref: '#/components/schemas/Ulid' }
+        destinationLocationId: { $ref: '#/components/schemas/Ulid' }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/TransferLineInput' }
+
+    TransferUpdate:
+      type: object
+      required: [version]
+      properties:
+        sourceLocationId: { $ref: '#/components/schemas/Ulid' }
+        destinationSiteId: { $ref: '#/components/schemas/Ulid' }
+        destinationLocationId: { $ref: '#/components/schemas/Ulid' }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/TransferLineInput' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    TransferDispatchInput:
+      type: object
+      required: [version, lines]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [lineId, dispatchedQuantity]
+            properties:
+              lineId: { $ref: '#/components/schemas/Ulid' }
+              dispatchedQuantity: { $ref: '#/components/schemas/Quantity' }
+
+    TransferReceiveInput:
+      type: object
+      required: [version, lines]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        notes: { type: string, maxLength: 1000 }
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [lineId, receivedQuantity]
+            properties:
+              lineId: { $ref: '#/components/schemas/Ulid' }
+              receivedQuantity: { $ref: '#/components/schemas/Quantity' }
+              rejectedQuantity: { $ref: '#/components/schemas/Quantity' }
+              discrepancyReason: { type: string }
+
+    TransferCancelInput:
+      type: object
+      required: [version, reason]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        reason: { type: string, maxLength: 500 }
+
+    StockCountEntry:
+      type: object
+      required: [id, itemId, itemSku, itemName, unit, recountNumber]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        itemId: { $ref: '#/components/schemas/Ulid' }
+        itemSku: { type: string }
+        itemName: { type: string }
+        unit: { type: string }
+        batchId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        expectedQuantity:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+          description: Omitted (null) for blind counters until submission
+        countedQuantity:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        variance:
+          anyOf: [{ type: string }, { type: 'null' }]
+          description: Signed decimal string; null until counted or hidden while blind
+        variancePercent:
+          anyOf: [{ type: string }, { type: 'null' }]
+        notes: { anyOf: [{ type: string }, { type: 'null' }] }
+        countedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        countedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        recountNumber: { type: integer, minimum: 0 }
+
+    StockCount:
+      type: object
+      required: [id, countNumber, siteId, siteName, locationId, locationName, scope, blindCount, status, createdBy, createdByName, assignedUserIds, entries, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        countNumber: { type: string }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        siteName: { type: string }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        locationName: { type: string }
+        scope:
+          type: string
+          enum: [all_items, category, selected_items]
+        scopeCategoryId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        scopeItemIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        blindCount: { type: boolean }
+        status: { $ref: '#/components/schemas/CountStatus' }
+        createdBy: { $ref: '#/components/schemas/Ulid' }
+        createdByName: { type: string }
+        assignedUserIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        startedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        submittedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        reviewedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        reviewedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        reviewNote: { anyOf: [{ type: string }, { type: 'null' }] }
+        postedBy:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        postedAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+        materialVariance: { type: boolean }
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/StockCountEntry' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    CountEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/StockCount' }
+
+    CountInput:
+      type: object
+      required: [siteId, locationId, scope, blindCount]
+      properties:
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        scope:
+          type: string
+          enum: [all_items, category, selected_items]
+        scopeCategoryId: { $ref: '#/components/schemas/Ulid' }
+        scopeItemIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        blindCount: { type: boolean }
+        assignedUserIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+
+    CountUpdate:
+      type: object
+      required: [version]
+      properties:
+        blindCount: { type: boolean }
+        assignedUserIds:
+          type: array
+          items: { $ref: '#/components/schemas/Ulid' }
+        version: { $ref: '#/components/schemas/Version' }
+
+    CountEntriesInput:
+      type: object
+      required: [version, entries]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        entries:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [entryId, countedQuantity]
+            properties:
+              entryId: { $ref: '#/components/schemas/Ulid' }
+              countedQuantity: { $ref: '#/components/schemas/Quantity' }
+              notes: { type: string, maxLength: 500 }
+
+    CountReviewInput:
+      type: object
+      required: [version]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        note: { type: string, maxLength: 1000 }
+
+    Asset:
+      type: object
+      required: [id, assetNumber, name, type, ownershipMode, make, model, serialNumber, status, siteId, siteName, version]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        assetNumber: { type: string }
+        name: { type: string }
+        type:
+          type: string
+          enum: [plant, transport, tank, workshop_equipment, attachment]
+        ownershipMode: { $ref: '#/components/schemas/OwnershipMode' }
+        make: { type: string }
+        model: { type: string }
+        serialNumber: { type: string }
+        registrationNumber: { anyOf: [{ type: string }, { type: 'null' }] }
+        status: { $ref: '#/components/schemas/AssetStatus' }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        siteName: { type: string }
+        locationId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        locationName: { anyOf: [{ type: string }, { type: 'null' }] }
+        assignedTo: { anyOf: [{ type: string }, { type: 'null' }] }
+        meterType:
+          anyOf: [{ type: string, enum: [hours, kilometres] }, { type: 'null' }]
+        meterReading:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        nextServiceAt:
+          anyOf: [{ type: string, format: date }, { type: 'null' }]
+        nextServiceMeter:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        serviceState:
+          type: string
+          enum: [ok, due_soon, overdue]
+        version: { $ref: '#/components/schemas/Version' }
+
+    AssetHistoryEvent:
+      type: object
+      required: [id, occurredAt, kind, summary, byUserId, byName]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        occurredAt: { $ref: '#/components/schemas/Timestamp' }
+        kind:
+          type: string
+          enum: [created, assigned, moved, status_changed, meter_reading, updated]
+        summary: { type: string }
+        byUserId: { $ref: '#/components/schemas/Ulid' }
+        byName: { type: string }
+
+    AssetDetail:
+      allOf:
+        - $ref: '#/components/schemas/Asset'
+        - type: object
+          required: [history]
+          properties:
+            history:
+              type: array
+              items: { $ref: '#/components/schemas/AssetHistoryEvent' }
+
+    AssetEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Asset' }
+
+    AssetInput:
+      type: object
+      required: [name, type, ownershipMode, make, model, serialNumber, siteId]
+      properties:
+        name: { type: string, maxLength: 160 }
+        type:
+          type: string
+          enum: [plant, transport, tank, workshop_equipment, attachment]
+        ownershipMode: { $ref: '#/components/schemas/OwnershipMode' }
+        make: { type: string, maxLength: 60 }
+        model: { type: string, maxLength: 60 }
+        serialNumber: { type: string, maxLength: 60 }
+        registrationNumber: { type: string, maxLength: 20 }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        meterType: { type: string, enum: [hours, kilometres] }
+        meterReading: { $ref: '#/components/schemas/Quantity' }
+        nextServiceAt: { type: string, format: date }
+        nextServiceMeter: { $ref: '#/components/schemas/Quantity' }
+
+    AssetUpdate:
+      type: object
+      required: [version]
+      properties:
+        name: { type: string, maxLength: 160 }
+        registrationNumber: { type: string, maxLength: 20 }
+        nextServiceAt:
+          anyOf: [{ type: string, format: date }, { type: 'null' }]
+        nextServiceMeter:
+          anyOf: [{ $ref: '#/components/schemas/Quantity' }, { type: 'null' }]
+        version: { $ref: '#/components/schemas/Version' }
+
+    AssetAssignInput:
+      type: object
+      required: [version, siteId]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        locationId: { $ref: '#/components/schemas/Ulid' }
+        assignedTo: { type: string, maxLength: 120 }
+        note: { type: string, maxLength: 500 }
+
+    AssetStatusInput:
+      type: object
+      required: [version, status]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        status: { $ref: '#/components/schemas/AssetStatus' }
+        note: { type: string, maxLength: 500 }
+
+    MeterReadingInput:
+      type: object
+      required: [version, reading]
+      properties:
+        version: { $ref: '#/components/schemas/Version' }
+        reading: { $ref: '#/components/schemas/Quantity' }
+        readAt: { type: string, format: date }
+        note: { type: string, maxLength: 500 }
+
+    Alert:
+      type: object
+      required: [id, type, severity, title, message, resourceType, resourceId, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        type: { $ref: '#/components/schemas/AlertType' }
+        severity: { $ref: '#/components/schemas/AlertSeverity' }
+        title: { type: string }
+        message: { type: string }
+        resourceType: { type: string }
+        resourceId: { type: string }
+        siteId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        createdAt: { $ref: '#/components/schemas/Timestamp' }
+        readAt:
+          anyOf: [{ $ref: '#/components/schemas/Timestamp' }, { type: 'null' }]
+
+    Dashboard:
+      type: object
+      required: [totals, stockBySite, movementTrend, inventoryHealth, transfersNeedingAction, recentActivity]
+      properties:
+        totals:
+          type: object
+          required: [stockValue, itemCount, assetCount, siteCount, lowStockCount, transfersInTransit, unresolvedVariances]
+          properties:
+            stockValue: { $ref: '#/components/schemas/Money' }
+            itemCount: { type: integer }
+            assetCount: { type: integer }
+            siteCount: { type: integer }
+            lowStockCount: { type: integer }
+            transfersInTransit: { type: integer }
+            unresolvedVariances: { type: integer }
+        stockBySite:
+          type: array
+          items:
+            type: object
+            required: [siteId, siteName, stockValue, itemCount]
+            properties:
+              siteId: { $ref: '#/components/schemas/Ulid' }
+              siteName: { type: string }
+              stockValue: { $ref: '#/components/schemas/Money' }
+              itemCount: { type: integer }
+        movementTrend:
+          type: array
+          items:
+            type: object
+            required: [date, inbound, outbound]
+            properties:
+              date: { type: string, format: date }
+              inbound: { type: integer }
+              outbound: { type: integer }
+        inventoryHealth:
+          type: object
+          required: [healthy, low, outOfStock, excess, quarantined]
+          properties:
+            healthy: { type: integer }
+            low: { type: integer }
+            outOfStock: { type: integer }
+            excess: { type: integer }
+            quarantined: { type: integer }
+        transfersNeedingAction:
+          type: array
+          items: { $ref: '#/components/schemas/Transfer' }
+        recentActivity:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEvent' }
+
+    StockOnHandRow:
+      type: object
+      required: [siteId, siteName, categoryId, categoryName, itemCount, totalOnHand, stockValue]
+      properties:
+        siteId: { $ref: '#/components/schemas/Ulid' }
+        siteName: { type: string }
+        categoryId: { $ref: '#/components/schemas/Ulid' }
+        categoryName: { type: string }
+        itemCount: { type: integer }
+        totalOnHand: { $ref: '#/components/schemas/Quantity' }
+        stockValue: { $ref: '#/components/schemas/Money' }
+
+    MovementSummaryRow:
+      type: object
+      required: [movementType, count, totalQuantity]
+      properties:
+        movementType: { $ref: '#/components/schemas/MovementType' }
+        count: { type: integer }
+        totalQuantity: { $ref: '#/components/schemas/Quantity' }
+
+    TransferReportRow:
+      type: object
+      required: [transferId, transferNumber, sourceSiteName, destinationSiteName, status, lineCount, discrepancyCount, cycleDays]
+      properties:
+        transferId: { $ref: '#/components/schemas/Ulid' }
+        transferNumber: { type: string }
+        sourceSiteName: { type: string }
+        destinationSiteName: { type: string }
+        status: { $ref: '#/components/schemas/TransferStatus' }
+        lineCount: { type: integer }
+        discrepancyCount: { type: integer }
+        cycleDays:
+          anyOf: [{ type: number }, { type: 'null' }]
+
+    CountVarianceRow:
+      type: object
+      required: [countId, countNumber, siteName, locationName, itemSku, itemName, expectedQuantity, countedQuantity, variance, variancePercent, status]
+      properties:
+        countId: { $ref: '#/components/schemas/Ulid' }
+        countNumber: { type: string }
+        siteName: { type: string }
+        locationName: { type: string }
+        itemSku: { type: string }
+        itemName: { type: string }
+        expectedQuantity: { $ref: '#/components/schemas/Quantity' }
+        countedQuantity: { $ref: '#/components/schemas/Quantity' }
+        variance: { type: string }
+        variancePercent: { type: string }
+        status: { $ref: '#/components/schemas/CountStatus' }
+
+    AssetReportRow:
+      type: object
+      required: [assetId, assetNumber, name, type, status, siteName, serviceState]
+      properties:
+        assetId: { $ref: '#/components/schemas/Ulid' }
+        assetNumber: { type: string }
+        name: { type: string }
+        type: { type: string }
+        status: { $ref: '#/components/schemas/AssetStatus' }
+        siteName: { type: string }
+        serviceState: { type: string, enum: [ok, due_soon, overdue] }
+        nextServiceAt:
+          anyOf: [{ type: string, format: date }, { type: 'null' }]
+
+    AuditEvent:
+      type: object
+      required: [id, occurredAt, actorUserId, actorName, action, resourceType, resourceId, summary, traceId]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        occurredAt: { $ref: '#/components/schemas/Timestamp' }
+        actorUserId: { $ref: '#/components/schemas/Ulid' }
+        actorName: { type: string }
+        action: { type: string }
+        resourceType: { type: string }
+        resourceId: { type: string }
+        siteId:
+          anyOf: [{ $ref: '#/components/schemas/Ulid' }, { type: 'null' }]
+        summary: { type: string }
+        changes:
+          type: object
+          additionalProperties: true
+          description: Before/after summary; sensitive fields excluded
+        traceId: { type: string }
