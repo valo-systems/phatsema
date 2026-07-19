@@ -1,26 +1,38 @@
-# Phatsema Project Documentation
+# Phatsema Documentation
 
-## Business discovery
+Use the shortest reading path that matches the work.
 
-1. [Meeting Context](00-meeting-context.md)
-2. [Company Profile](01-company-profile.md)
-3. [Products and Services](02-products-and-services.md)
-4. [Operations and Market](03-operations-and-market.md)
-5. [Customers, Partnerships, and CSI](04-customers-partnerships-and-csi.md)
-6. [Contacts and Digital Presence](05-contacts-and-digital-presence.md)
-7. [Back-Office Discovery](06-back-office-discovery.md)
-8. [Source Register and Open Questions](07-source-register-and-open-questions.md)
+## Build and maintain
 
-## Product and engineering
+1. [Getting Started](getting-started.md)
+2. [Architecture](architecture.md)
+3. [Frontend](frontend.md) or [Backend](backend.md)
+4. [API and Contracts](api-and-contracts.md)
+5. [Testing and Quality](testing-and-quality.md)
+6. [Contributing](contributing.md)
 
-9. [Technology and Architecture](08-technology-and-architecture.md)
-10. [Version-One Product and UX Plan](09-v1-product-and-ux-plan.md)
-11. [API Contract and Demo Data Model](10-api-contract-and-data-model.md)
-12. [Implementation and Quality Plan](11-implementation-and-quality-plan.md)
-13. [Version 1 Build Record](12-build-record.md)
-14. [Demo Integrity and Form Audit](13-demo-integrity-and-form-audit.md)
-15. [Audit-Ready Operations and Evidence Plan](14-audit-readiness-plan.md)
+## Understand the product
 
-## Current decision
+- [Inventory Workflows](inventory-workflows.md)
+- [Demo Data](demo-data.md)
+- [Audit Readiness](audit-readiness.md)
+- [Branding](branding.md)
 
-Build a premium, accessible React 19.2 single-page application with strict TypeScript and Vite 8.1, backed by a Laravel 13 API on PHP 8.5. The version-one demo uses isolated session-backed data behind repository interfaces and deploys to cPanel without a Node.js runtime or production database.
+## Operate and deploy
+
+- [cPanel Deployment](deployment-cpanel.md)
+- [OpenAPI contract](../packages/contracts/openapi.yaml)
+- [Business research](business/00-meeting-context.md)
+
+## Source of truth
+
+| Question | Source |
+|---|---|
+| What does the public API accept? | `packages/contracts/openapi.yaml` |
+| What business rules apply? | `apps/api/app/Domain` and application services |
+| How does the UI behave? | Feature code and tests in `apps/web` |
+| What demo records exist? | `apps/api/resources/demo/v1/FixtureFactory.php` |
+| How is production deployed? | `.cpanel.yml`, deployment scripts, and the cPanel guide |
+| What did the client or website confirm? | `docs/business` |
+
+Historical build briefs and stale task lists are intentionally not retained. Git history remains the record of previous implementation plans.

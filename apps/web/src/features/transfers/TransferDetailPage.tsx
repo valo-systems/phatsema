@@ -10,7 +10,7 @@ import { ErrorState } from '@/shared/ui/states';
 import { StatusPill, Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/controls';
 import { Field } from '@/shared/ui/controls';
-import { NumberField, Textarea, Input } from '@/shared/ui/controls';
+import { NumberField, TextArea, TextField } from '@/shared/ui/controls';
 import { CompactTable } from '@/shared/ui/data/CompactTable';
 import { ConfirmDialog, Dialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
@@ -274,7 +274,7 @@ export function TransferDetailPage() {
         onConfirm={doApprove}
       >
         <Field label="Approval notes">
-          <Input value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
+          <TextField value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
         </Field>
       </ConfirmDialog>
 
@@ -315,7 +315,7 @@ export function TransferDetailPage() {
             </Field>
           ))}
           <Field label="Dispatch notes">
-            <Textarea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
+            <TextArea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
           </Field>
         </div>
       </Dialog>
@@ -355,14 +355,14 @@ export function TransferDetailPage() {
                 </div>
                 <div className="mt-3">
                   <Field label="Discrepancy reason" hint="Required when any quantity is rejected">
-                    <Input aria-label={`Discrepancy reason for ${line.itemSku}`} value={values.reason} onChange={(event) => setReceiveLines((current) => ({ ...current, [line.id]: { ...values, reason: event.target.value } }))} />
+                    <TextField aria-label={`Discrepancy reason for ${line.itemSku}`} value={values.reason} onChange={(event) => setReceiveLines((current) => ({ ...current, [line.id]: { ...values, reason: event.target.value } }))} />
                   </Field>
                 </div>
               </div>
             );
           })}
           <Field label="Receipt notes">
-            <Textarea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
+            <TextArea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} placeholder="Optional" />
           </Field>
         </div>
       </Dialog>
@@ -390,7 +390,7 @@ export function TransferDetailPage() {
         }
       >
         <Field label="Reason" required hint="Required to cancel a transfer">
-          <Input
+          <TextField
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             placeholder="Enter cancellation reason"

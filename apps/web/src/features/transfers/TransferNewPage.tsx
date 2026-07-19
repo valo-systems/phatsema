@@ -7,7 +7,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Select, NumberField, Textarea } from '@/shared/ui/controls';
+import { Select, NumberField, TextArea } from '@/shared/ui/controls';
 import { LineItemEditor } from '@/shared/ui/data/CompactTable';
 import { ConfirmDialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
@@ -226,7 +226,7 @@ export function TransferNewPage() {
         <CardHeader title="4. Notes" description="Optional context for approvers." />
         <div className="px-4 py-4 sm:px-5">
           <Field label="Notes">
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
+            <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
           </Field>
         </div>
       </Card>

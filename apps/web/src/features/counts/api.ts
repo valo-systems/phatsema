@@ -5,7 +5,6 @@ import { api, unwrap } from '@/shared/api/client';
 export type StockCount = components['schemas']['StockCount'];
 export type StockCountEntry = components['schemas']['StockCountEntry'];
 export type CountInput = components['schemas']['CountInput'];
-export type CountUpdate = components['schemas']['CountUpdate'];
 export type CountEntriesInput = components['schemas']['CountEntriesInput'];
 export type CountReviewInput = components['schemas']['CountReviewInput'];
 export type PageMeta = components['schemas']['PageMeta'];
@@ -53,17 +52,6 @@ export function useCreateCount() {
   return useMutation({
     mutationFn: async (input: CountInput) =>
       unwrap<{ data: StockCount }>(await api.POST('/counts', { body: input })).data,
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdateCount(countId: string) {
-  const invalidate = useInvalidateCounts();
-  return useMutation({
-    mutationFn: async (input: CountUpdate) =>
-      unwrap<{ data: StockCount }>(
-        await api.PATCH('/counts/{countId}', { params: { path: { countId } }, body: input }),
-      ).data,
     onSuccess: invalidate,
   });
 }

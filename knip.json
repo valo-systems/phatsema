@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "apps/web": {
+      "entry": [
+        "src/app/main.tsx",
+        "src/**/*.test.{ts,tsx}",
+        "e2e/**/*.ts",
+        "vite.config.ts",
+        "playwright.config.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "e2e/**/*.ts",
+        "*.ts"
+      ],
+      "ignoreDependencies": [
+        "@fontsource-variable/inter",
+        "tailwindcss"
+      ]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}

@@ -9,7 +9,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Input, Select, NumberField, Textarea } from '@/shared/ui/controls';
+import { TextField, Select, NumberField, TextArea } from '@/shared/ui/controls';
 import { LineItemEditor } from '@/shared/ui/data/CompactTable';
 import { ConfirmDialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
@@ -152,10 +152,10 @@ export function IssuePage() {
             <Select value={purpose} onValueChange={(value) => setPurpose(value as typeof purpose)} options={PURPOSES.map((value) => ({ value, label: label(value) }))} />
           </Field>
           <Field label="Project / job / cost-centre reference" hint="Optional, e.g. DEMO-JOB-118">
-            <Input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} />
+            <TextField value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} />
           </Field>
           <Field label="Recipient" required hint="Person or team receiving the stock">
-            <Input value={recipient} onChange={(event) => setRecipient(event.target.value)} maxLength={120} />
+            <TextField value={recipient} onChange={(event) => setRecipient(event.target.value)} maxLength={120} />
           </Field>
         </div>
       </Card>
@@ -240,7 +240,7 @@ export function IssuePage() {
         <CardHeader title="3. Notes" />
         <div className="px-4 py-4 sm:px-5">
           <Field label="Notes">
-            <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} />
+            <TextArea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} />
           </Field>
         </div>
       </Card>

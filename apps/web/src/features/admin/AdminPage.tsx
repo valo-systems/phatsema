@@ -11,7 +11,7 @@ import { StatusPill, Badge } from '@/shared/ui/Badge';
 import { Button, Checkbox } from '@/shared/ui/controls';
 import { Dialog } from '@/shared/ui/overlays';
 import { ErrorSummary, Field } from '@/shared/ui/controls';
-import { Input, Select, Textarea } from '@/shared/ui/controls';
+import { TextField, Select, TextArea } from '@/shared/ui/controls';
 import { CompactTable } from '@/shared/ui/data/CompactTable';
 import { ErrorState } from '@/shared/ui/states';
 import { toast } from '@/shared/ui/toast';
@@ -162,16 +162,16 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
     <Dialog open={open} onOpenChange={onOpenChange} title="New user" description="Create access with an explicit role and site scope." footer={<><Button onClick={() => onOpenChange(false)}>Cancel</Button><Button variant="primary" loading={create.isPending} onClick={submit}>Create user</Button></>}>
       <div className="space-y-3">
         {apiErrors.length > 0 && <ErrorSummary errors={apiErrors} />}
-        <Field label="Name" required><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
+        <Field label="Name" required><TextField value={name} onChange={(event) => setName(event.target.value)} /></Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Preferred name"><Input value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
-          <Field label="Work phone"><Input value={workPhone} maxLength={32} onChange={(event) => setWorkPhone(event.target.value)} /></Field>
-          <Field label="Job title"><Input value={jobTitle} maxLength={120} onChange={(event) => setJobTitle(event.target.value)} /></Field>
+          <Field label="Preferred name"><TextField value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
+          <Field label="Work phone"><TextField value={workPhone} maxLength={32} onChange={(event) => setWorkPhone(event.target.value)} /></Field>
+          <Field label="Job title"><TextField value={jobTitle} maxLength={120} onChange={(event) => setJobTitle(event.target.value)} /></Field>
           <Field label="Department"><Select value={departmentCode} onValueChange={setDepartmentCode} clearable placeholder="Not assigned" options={(departments.data ?? []).map((department) => ({ value: department.code, label: department.name }))} /></Field>
         </div>
-        <Field label="Biography" hint={`${bio.length}/500 characters`}><Textarea value={bio} maxLength={500} rows={3} onChange={(event) => setBio(event.target.value)} /></Field>
-        <Field label="Email" required><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></Field>
-        <Field label="Temporary password" required hint="At least 12 characters"><Input type="password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} /></Field>
+        <Field label="Biography" hint={`${bio.length}/500 characters`}><TextArea value={bio} maxLength={500} rows={3} onChange={(event) => setBio(event.target.value)} /></Field>
+        <Field label="Email" required><TextField type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></Field>
+        <Field label="Temporary password" required hint="At least 12 characters"><TextField type="password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} /></Field>
         <Field label="Role" required><Select value={role} onValueChange={(value) => setRole(value as UserInput['role'])} options={ROLE_KEYS.map((value) => ({ value, label: value.replaceAll('_', ' ') }))} /></Field>
         <Checkbox checked={allSites} onCheckedChange={setAllSites} label="Access all sites" />
         {!allSites && <fieldset className="space-y-2"><legend className="text-sm font-medium">Assigned sites</legend>{sites.data?.map((site) => <Checkbox key={site.id} label={site.name} checked={assignedSiteIds.includes(site.id)} onCheckedChange={(checked) => setAssignedSiteIds((current) => checked ? [...current, site.id] : current.filter((id) => id !== site.id))} />)}</fieldset>}
@@ -252,13 +252,13 @@ function EditWorkProfileDialog({
       <div className="space-y-3">
         {apiErrors.length > 0 && <ErrorSummary errors={apiErrors} />}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Full name" required><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></Field>
-          <Field label="Preferred name"><Input value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
-          <Field label="Work phone"><Input value={workPhone} maxLength={32} onChange={(event) => setWorkPhone(event.target.value)} /></Field>
-          <Field label="Job title"><Input value={jobTitle} maxLength={120} onChange={(event) => setJobTitle(event.target.value)} /></Field>
+          <Field label="Full name" required><TextField value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></Field>
+          <Field label="Preferred name"><TextField value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
+          <Field label="Work phone"><TextField value={workPhone} maxLength={32} onChange={(event) => setWorkPhone(event.target.value)} /></Field>
+          <Field label="Job title"><TextField value={jobTitle} maxLength={120} onChange={(event) => setJobTitle(event.target.value)} /></Field>
         </div>
         <Field label="Department"><Select value={departmentCode} onValueChange={setDepartmentCode} clearable placeholder="Not assigned" options={(departments.data ?? []).map((department) => ({ value: department.code, label: department.name }))} /></Field>
-        <Field label="Biography" hint={`${bio.length}/500 characters`}><Textarea value={bio} maxLength={500} rows={4} onChange={(event) => setBio(event.target.value)} /></Field>
+        <Field label="Biography" hint={`${bio.length}/500 characters`}><TextArea value={bio} maxLength={500} rows={4} onChange={(event) => setBio(event.target.value)} /></Field>
         {errors.length > 0 && <ErrorSummary errors={errors} />}
       </div>
     </Dialog>

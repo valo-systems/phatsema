@@ -6,7 +6,7 @@ import { useSession } from '@/shared/auth/session';
 import { formatDateTime } from '@/shared/format/format';
 import { displayName, initials } from '@/shared/format/person';
 import { Badge, StatusPill } from '@/shared/ui/Badge';
-import { Button, ErrorSummary, Field, Input, Textarea } from '@/shared/ui/controls';
+import { Button, ErrorSummary, Field, TextField, TextArea } from '@/shared/ui/controls';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader, DescriptionList, PageSkeleton } from '@/shared/ui/surfaces';
 import { toast } from '@/shared/ui/toast';
@@ -125,13 +125,13 @@ export function ProfilePage() {
             <div className="space-y-4 p-4 sm:p-5">
               {profileApiErrors.length > 0 && <ErrorSummary errors={profileApiErrors} />}
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Full name" required><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></Field>
-                <Field label="Preferred name" hint="Used in menus and your initials"><Input value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
-                <Field label="Email" hint="Your administrator controls this login identifier"><Input value={user.email} readOnly disabled /></Field>
-                <Field label="Work phone"><Input value={workPhone} maxLength={32} inputMode="tel" onChange={(event) => setWorkPhone(event.target.value)} /></Field>
+                <Field label="Full name" required><TextField value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></Field>
+                <Field label="Preferred name" hint="Used in menus and your initials"><TextField value={preferredName} maxLength={80} onChange={(event) => setPreferredName(event.target.value)} /></Field>
+                <Field label="Email" hint="Your administrator controls this login identifier"><TextField value={user.email} readOnly disabled /></Field>
+                <Field label="Work phone"><TextField value={workPhone} maxLength={32} inputMode="tel" onChange={(event) => setWorkPhone(event.target.value)} /></Field>
               </div>
               <Field label="Biography" hint={`${bio.length}/500 characters`}>
-                <Textarea value={bio} maxLength={500} rows={4} onChange={(event) => setBio(event.target.value)} />
+                <TextArea value={bio} maxLength={500} rows={4} onChange={(event) => setBio(event.target.value)} />
               </Field>
               {profileAttempted && profileErrors.length > 0 && <ErrorSummary errors={profileErrors} />}
               <div className="flex justify-end">
@@ -144,10 +144,10 @@ export function ProfilePage() {
             <CardHeader title="Security" description="Use a unique password of at least 12 characters." />
             <div className="space-y-4 p-4 sm:p-5">
               {passwordApiErrors.length > 0 && <ErrorSummary errors={passwordApiErrors} />}
-              <Field label="Current password" required><Input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></Field>
+              <Field label="Current password" required><TextField type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="New password" required><Input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></Field>
-                <Field label="Confirm new password" required><Input type="password" autoComplete="new-password" value={newPasswordConfirmation} onChange={(event) => setNewPasswordConfirmation(event.target.value)} /></Field>
+                <Field label="New password" required><TextField type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></Field>
+                <Field label="Confirm new password" required><TextField type="password" autoComplete="new-password" value={newPasswordConfirmation} onChange={(event) => setNewPasswordConfirmation(event.target.value)} /></Field>
               </div>
               {passwordAttempted && passwordErrors.length > 0 && <ErrorSummary errors={passwordErrors} />}
               <div className="flex justify-end">

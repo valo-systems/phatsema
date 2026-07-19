@@ -4,15 +4,26 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
+import { Collapsible } from '@ark-ui/react/collapsible';
+import {
+  BadgeCheck,
+  Boxes,
+  ChevronRight,
+  ClipboardCheck,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  UsersRound,
+} from 'lucide-react';
 import { useLogin, sessionKeys } from '@/shared/auth/session';
 import { isApiError } from '@/shared/api/problem';
 import { env } from '@/shared/config/env';
-import { Button } from '@/shared/ui/controls';
-import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Input } from '@/shared/ui/controls';
-import { Badge } from '@/shared/ui/Badge';
-import logoColor from '@/assets/brand/header/logo-header-40px.png';
-import logoColor2x from '@/assets/brand/header/logo-header-40px@2x.png';
+import { Button, ErrorSummary, Field, IconButton, TextField } from '@/shared/ui/controls';
+import logoFullColor from '@/assets/brand/logo/logo-full-color-transparent.png';
+import logoReversed from '@/assets/brand/logo/logo-full-reversed.png';
+import warehouseHero from '@/assets/auth/warehouse-hero.webp';
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email address'),
@@ -29,6 +40,24 @@ const PERSONAS: Array<{ label: string; description: string; email: string }> = [
   { label: 'Executive Viewer', description: 'Read-only dashboards, reports, activity', email: 'executive@demo.phatsema.example' },
 ];
 
+const BENEFITS = [
+  {
+    title: 'Multi-site visibility',
+    description: 'Monitor stock and assets across all locations in real time.',
+    icon: Boxes,
+  },
+  {
+    title: 'Operational control',
+    description: 'Manage transfers, counts, and adjustments with confidence.',
+    icon: ClipboardCheck,
+  },
+  {
+    title: 'Data you can trust',
+    description: 'Accurate, up-to-date information to support every decision.',
+    icon: BadgeCheck,
+  },
+] as const;
+
 const DEMO_PASSWORD = 'PhatsemaDemo1';
 
 export function LoginPage() {
@@ -37,6 +66,8 @@ export function LoginPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [personasOpen, setPersonasOpen] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
 
@@ -72,84 +103,191 @@ export function LoginPage() {
     form.setValue('email', email, { shouldValidate: true });
     form.setValue('password', DEMO_PASSWORD, { shouldValidate: true });
     setServerError(null);
+    setPersonasOpen(false);
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-shell via-shell to-[#0e2f27] px-4 py-10">
-      <div className="w-full max-w-4xl">
-        <div className="grid overflow-hidden rounded-lg bg-surface shadow-overlay lg:grid-cols-[1.05fr_1fr]">
-          {/* Sign-in panel */}
-          <section className="px-6 py-8 sm:px-10 sm:py-10">
-            <div className="flex items-center gap-2.5">
+    <main className="relative min-h-screen overflow-hidden bg-shell">
+      <img
+        src={warehouseHero}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover object-center"
+      />
+      <div aria-hidden className="absolute inset-0 bg-[#071322]/65" />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,14,27,0.96)_0%,rgba(6,18,32,0.86)_32%,rgba(8,23,38,0.55)_58%,rgba(7,20,33,0.78)_100%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute -bottom-40 -left-40 h-[42rem] w-[42rem] rounded-full bg-primary/20 blur-3xl"
+      />
+
+      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-[1680px] lg:grid-cols-[minmax(25rem,1fr)_minmax(31rem,0.82fr)]">
+        <section className="relative hidden min-h-screen items-center overflow-hidden px-12 py-16 lg:flex xl:px-20 2xl:px-24">
+          <div
+            aria-hidden
+            className="absolute -top-[12vh] -right-[10vw] h-[124vh] w-[36vw] min-w-[34rem] rounded-[50%] border-r border-primary/55 bg-[linear-gradient(90deg,rgba(5,16,30,0.15),rgba(7,21,36,0.42))]"
+          />
+
+          <div className="relative z-10 max-w-md">
+            <img src={logoReversed} alt="Phatsema Projects & Supplies" className="h-auto w-72 max-w-full" />
+
+            <h1 className="mt-14 text-4xl font-semibold leading-[1.12] tracking-[-0.035em] text-white xl:text-5xl">
+              Smarter inventory.
+              <span className="mt-1 block text-primary-ring">Stronger operations.</span>
+            </h1>
+            <p className="mt-7 max-w-[27rem] text-base leading-relaxed text-shell-muted xl:text-lg">
+              Phatsema Back-office Portal gives you complete control of your multi-site inventory,
+              transfers, counts, and assets.
+            </p>
+
+            <ul className="mt-10 space-y-7">
+              {BENEFITS.map((benefit) => {
+                const BenefitIcon = benefit.icon;
+                return (
+                  <li key={benefit.title} className="flex gap-4">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-lg border border-primary-ring/70 bg-primary/10 text-primary-ring">
+                      <BenefitIcon aria-hidden className="size-5" />
+                    </span>
+                    <span>
+                      <span className="block font-semibold text-white">{benefit.title}</span>
+                      <span className="mt-0.5 block max-w-[20rem] text-sm leading-relaxed text-shell-muted">
+                        {benefit.description}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+
+        <section className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-8 lg:px-10 lg:py-10 xl:px-14">
+          <div className="w-full max-w-[35rem]">
+            <div className="rounded-xl border border-white/55 bg-surface px-5 py-7 shadow-[0_28px_80px_rgba(3,12,24,0.42)] sm:px-9 sm:py-9 xl:px-12 xl:py-10">
               <img
-                src={logoColor}
-                srcSet={`${logoColor} 1x, ${logoColor2x} 2x`}
-                alt="Phatsema"
-                height={40}
-                className="h-10 w-auto"
+                src={logoFullColor}
+                alt="Phatsema Projects & Supplies"
+                className="h-auto w-64 max-w-[82%]"
               />
-              <p className="text-xs text-muted">Back-office portal</p>
+              <p className="mt-5 text-sm font-medium text-muted">Back-office portal</p>
+
+              <h2 className="mt-7 text-3xl font-semibold tracking-[-0.025em] text-ink">Sign in</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                Use a demo persona to explore multi-site inventory, transfers, counts, and assets.
+              </p>
+
+              <form onSubmit={(event) => void submit(event)} noValidate className="mt-7 space-y-5">
+                {serverError && <ErrorSummary title="Sign-in failed" errors={[serverError]} />}
+                <Field label="Email address" required error={form.formState.errors.email?.message}>
+                  <TextField
+                    type="email"
+                    autoComplete="username"
+                    placeholder="you@phatsema.example"
+                    leading={<Mail className="size-4" />}
+                    {...form.register('email')}
+                  />
+                </Field>
+                <Field label="Password" required error={form.formState.errors.password?.message}>
+                  <TextField
+                    type={passwordVisible ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="Demo password"
+                    leading={<LockKeyhole className="size-4" />}
+                    trailing={
+                      <IconButton
+                        aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                        aria-pressed={passwordVisible}
+                        icon={passwordVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        variant="ghost"
+                        size="sm"
+                        className="-mr-2"
+                        onClick={() => setPasswordVisible((visible) => !visible)}
+                      />
+                    }
+                    {...form.register('password')}
+                  />
+                </Field>
+                <Button type="submit" variant="primary" size="lg" className="w-full gap-2" loading={login.isPending}>
+                  {!login.isPending && <LockKeyhole aria-hidden className="size-4" />}
+                  Sign in
+                </Button>
+              </form>
+
+              {env.demoMode && (
+                <>
+                  <div className="my-6 flex items-center gap-4" aria-hidden>
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="text-[11px] font-medium tracking-[0.09em] text-faint">OR CONTINUE AS</span>
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+
+                  <Collapsible.Root
+                    open={personasOpen}
+                    onOpenChange={(details) => setPersonasOpen(details.open)}
+                  >
+                    <Collapsible.Trigger
+                      aria-expanded={personasOpen}
+                      className="focus-ring flex h-control-lg w-full items-center gap-3 rounded-md border border-line-strong bg-surface px-4 text-sm font-medium text-ink transition-colors hover:border-faint hover:bg-sunken"
+                    >
+                      <UsersRound aria-hidden className="size-4" />
+                      <span className="flex-1 text-left">Demo personas</span>
+                      <ChevronRight
+                        aria-hidden
+                        className={`size-4 transition-transform duration-150 ${personasOpen ? 'rotate-90' : ''}`}
+                      />
+                    </Collapsible.Trigger>
+                    <Collapsible.Content
+                      id="demo-personas-panel"
+                      className="mt-3 overflow-hidden data-[state=open]:animate-fade-in"
+                    >
+                      {personasOpen && (
+                        <>
+                          <p className="rounded-md bg-sunken px-3 py-2 text-xs leading-relaxed text-muted">
+                            Select a persona to fill the form. Shared password:{' '}
+                            <code className="font-semibold text-ink">{DEMO_PASSWORD}</code>
+                          </p>
+                          <ul className="mt-2 grid max-h-56 gap-2 overflow-y-auto pr-1 scrollbar-thin">
+                            {PERSONAS.map((persona) => (
+                              <li key={persona.email}>
+                                {/* eslint-disable-next-line no-restricted-syntax -- composite persona selector */}
+                                <button
+                                  type="button"
+                                  onClick={() => fillPersona(persona.email)}
+                                  className="focus-ring w-full rounded-md border border-line bg-surface px-3 py-2 text-left transition-colors hover:border-primary-ring hover:bg-primary-soft/35"
+                                >
+                                  <span className="block text-[13px] font-semibold text-ink">{persona.label}</span>
+                                  <span className="mt-0.5 block text-xs text-muted">{persona.description}</span>
+                                  <span className="mt-1 block text-[11px] text-faint" data-numeric>
+                                    {persona.email}
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </Collapsible.Content>
+                  </Collapsible.Root>
+                </>
+              )}
+
+              <div className="mt-7 flex gap-3 border-t border-line pt-5 text-xs leading-relaxed text-faint">
+                <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+                <p>
+                  This is a demonstration environment. All names, sites, quantities, and values are
+                  fictional and are not Phatsema operational data.
+                </p>
+              </div>
             </div>
 
-            <h1 className="mt-8 text-xl font-semibold text-ink">Sign in</h1>
-            <p className="mt-1 text-sm text-muted">
-              Use a demo persona to explore multi-site inventory, transfers, counts, and assets.
+            <p className="mt-5 text-center text-[11px] text-shell-muted">
+              Phatsema Portal {env.appVersion} · demonstration build
             </p>
-
-            <form onSubmit={(event) => void submit(event)} noValidate className="mt-6 space-y-4">
-              {serverError && <ErrorSummary title="Sign-in failed" errors={[serverError]} />}
-              <Field label="Email" required error={form.formState.errors.email?.message}>
-                <Input type="email" autoComplete="username" placeholder="you@phatsema.example" {...form.register('email')} />
-              </Field>
-              <Field label="Password" required error={form.formState.errors.password?.message}>
-                <Input type="password" autoComplete="current-password" placeholder="Demo password" {...form.register('password')} />
-              </Field>
-              <Button type="submit" variant="primary" size="lg" className="w-full" loading={login.isPending}>
-                Sign in
-              </Button>
-            </form>
-
-            <p className="mt-6 text-xs leading-relaxed text-faint">
-              This is a demonstration environment. All names, sites, quantities, and values are fictional and
-              are not Phatsema operational data.
-            </p>
-          </section>
-
-          {/* Persona panel */}
-          {env.demoMode && (
-            <section className="border-t border-line bg-canvas px-6 py-8 sm:px-8 lg:border-t-0 lg:border-l">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-ink">Demo personas</h2>
-                <Badge tone="warning">Demo data</Badge>
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                Select a persona to fill the form, then sign in. Password for every persona:{' '}
-                <code className="rounded-sm bg-sunken px-1 py-0.5 text-[11px]">{DEMO_PASSWORD}</code>
-              </p>
-              <ul className="mt-4 space-y-2">
-                {PERSONAS.map((persona) => (
-                  <li key={persona.email}>
-                    {/* eslint-disable-next-line no-restricted-syntax -- persona card is a composite clickable region, not a control */}
-                    <button
-                      type="button"
-                      onClick={() => fillPersona(persona.email)}
-                      className="w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-left transition-colors hover:border-primary-ring hover:bg-primary-soft/40"
-                    >
-                      <span className="block text-[13px] font-semibold text-ink">{persona.label}</span>
-                      <span className="mt-0.5 block text-xs text-muted">{persona.description}</span>
-                      <span className="mt-1 block text-[11px] text-faint" data-numeric>
-                        {persona.email}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-        <p className="mt-4 text-center text-[11px] text-shell-muted">
-          Phatsema Portal {env.appVersion} · demonstration build
-        </p>
+          </div>
+        </section>
       </div>
     </main>
   );

@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button } from '@/shared/ui/controls';
 import { ErrorSummary, Field } from '@/shared/ui/controls';
-import { Input, Select, NumberField } from '@/shared/ui/controls';
+import { TextField, Select, NumberField } from '@/shared/ui/controls';
 import { toast } from '@/shared/ui/toast';
 import { label } from '@/shared/format/format';
 import { useCreateAsset, type AssetInput } from './api';
@@ -87,17 +87,17 @@ export function AssetCreatePage() {
             The portal assigns the next asset number when this record is saved.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Asset name" required><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
+            <Field label="Asset name" required><TextField value={name} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="Type" required>
               <Select value={type} onValueChange={(value) => setType(value as AssetInput['type'])} options={ASSET_TYPES.map((value) => ({ value, label: label(value) }))} />
             </Field>
             <Field label="Ownership" required>
               <Select value={ownershipMode} onValueChange={(value) => setOwnershipMode(value as AssetInput['ownershipMode'])} options={OWNERSHIP.map((value) => ({ value, label: label(value) }))} />
             </Field>
-            <Field label="Manufacturer" required><Input value={make} onChange={(event) => setMake(event.target.value)} /></Field>
-            <Field label="Model" required><Input value={model} onChange={(event) => setModel(event.target.value)} /></Field>
-            <Field label="Manufacturer serial number" required><Input value={serialNumber} onChange={(event) => setSerialNumber(event.target.value)} /></Field>
-            <Field label="Registration number"><Input value={registrationNumber} onChange={(event) => setRegistrationNumber(event.target.value)} placeholder="Optional" /></Field>
+            <Field label="Manufacturer" required><TextField value={make} onChange={(event) => setMake(event.target.value)} /></Field>
+            <Field label="Model" required><TextField value={model} onChange={(event) => setModel(event.target.value)} /></Field>
+            <Field label="Manufacturer serial number" required><TextField value={serialNumber} onChange={(event) => setSerialNumber(event.target.value)} /></Field>
+            <Field label="Registration number"><TextField value={registrationNumber} onChange={(event) => setRegistrationNumber(event.target.value)} placeholder="Optional" /></Field>
             <Field label="Site" required>
               <Select value={siteId} onValueChange={(value) => { setSiteId(value); setLocationId(''); }} options={(sites.data ?? []).filter((site) => site.status === 'active').map((site) => ({ value: site.id, label: site.name }))} placeholder="Select site" />
             </Field>

@@ -11,7 +11,7 @@ import { ErrorState } from '@/shared/ui/states';
 import { StatusPill, Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/controls';
 import { Field } from '@/shared/ui/controls';
-import { Input, Select, NumberField } from '@/shared/ui/controls';
+import { TextField, Select, NumberField } from '@/shared/ui/controls';
 import { Dialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
 import { formatDate, formatDateTime, formatQuantity, label } from '@/shared/format/format';
@@ -218,7 +218,7 @@ export function AssetDetailPage() {
             <Select value={assignSiteId} onValueChange={setAssignSiteId} options={(sites.data ?? []).filter((site) => site.status === 'active').map((site) => ({ value: site.id, label: site.name }))} placeholder="Select site" />
           </Field>
           <Field label="Assigned to" hint="Operator name or crew identifier">
-            <Input
+            <TextField
               value={assignTo}
               onChange={(e) => setAssignTo(e.target.value)}
               placeholder="Optional"

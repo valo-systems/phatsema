@@ -7,7 +7,7 @@ import { isApiError } from '@/shared/api/problem';
 import { Dialog } from '@/shared/ui/overlays';
 import { Button } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Input, NumberField, Textarea, FormSelect } from '@/shared/ui/controls';
+import { TextField, NumberField, TextArea, FormSelect } from '@/shared/ui/controls';
 import { toast } from '@/shared/ui/toast';
 import { enumOptions, recordOptions, INVENTORY_TYPE_VALUES } from '@/shared/ui/controls/options';
 import { isValidQuantity } from '@/shared/format/dec';
@@ -150,10 +150,10 @@ export function ItemFormDialog({
           </p>
         )}
         <Field label="Name" required error={form.formState.errors.name?.message}>
-          <Input {...form.register('name')} />
+          <TextField {...form.register('name')} />
         </Field>
         <Field label="Description" error={form.formState.errors.description?.message}>
-          <Textarea {...form.register('description')} />
+          <TextArea {...form.register('description')} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Category" required control="custom" error={form.formState.errors.categoryId?.message}>

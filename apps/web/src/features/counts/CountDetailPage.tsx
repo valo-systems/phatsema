@@ -10,7 +10,7 @@ import { ErrorState } from '@/shared/ui/states';
 import { StatusPill, Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/controls';
 import { Field } from '@/shared/ui/controls';
-import { NumberField, Textarea } from '@/shared/ui/controls';
+import { NumberField, TextArea } from '@/shared/ui/controls';
 import { CompactTable } from '@/shared/ui/data/CompactTable';
 import { ConfirmDialog, Dialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
@@ -315,7 +315,7 @@ export function CountDetailPage() {
                 />
               </Field>
               <Field label="Notes">
-                <Textarea
+                <TextArea
                   aria-label={`Notes for ${entry.itemSku}`}
                   value={entryNotes[entry.id] ?? ''}
                   onChange={(e) =>
@@ -365,7 +365,7 @@ export function CountDetailPage() {
         }
       >
         <Field label="Review note">
-          <Textarea
+          <TextArea
             value={reviewNote}
             onChange={(e) => setReviewNote(e.target.value)}
             placeholder="Optional observation for the audit trail"

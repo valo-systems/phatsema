@@ -57,10 +57,3 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
     );
   },
 );
-
-/*
- * Aliases retained so pages written against the previous control names keep
- * compiling during the migration. Prefer TextField and TextArea in new code.
- */
-export const Input = TextField;
-export const Textarea = TextArea;

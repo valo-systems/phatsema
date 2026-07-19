@@ -32,40 +32,6 @@ export function CardHeader({
   );
 }
 
-export function StatCard({
-  label,
-  value,
-  hint,
-  tone = 'default',
-  icon,
-}: {
-  label: string;
-  value: ReactNode;
-  hint?: ReactNode;
-  tone?: 'default' | 'warning' | 'danger';
-  icon?: ReactNode;
-}) {
-  return (
-    <Card className="px-4 py-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium tracking-wide text-muted uppercase">{label}</p>
-        {icon && <span className="text-faint">{icon}</span>}
-      </div>
-      <p
-        data-numeric
-        className={cn(
-          'mt-1.5 text-2xl leading-none font-semibold',
-          tone === 'warning' && 'text-warning',
-          tone === 'danger' && 'text-danger',
-        )}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-1.5 text-xs text-muted">{hint}</p>}
-    </Card>
-  );
-}
-
 export function DescriptionList({ items, className }: { items: Array<{ term: string; detail: ReactNode }>; className?: string }) {
   return (
     <dl className={cn('grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2', className)}>

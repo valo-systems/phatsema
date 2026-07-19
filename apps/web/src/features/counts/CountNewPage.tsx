@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button, Checkbox } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Select, Textarea } from '@/shared/ui/controls';
+import { Select, TextArea } from '@/shared/ui/controls';
 import { ConfirmDialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
 import { useCreateCount } from './api';
@@ -151,7 +151,7 @@ export function CountNewPage() {
           </Field>
 
           <Field label="Notes">
-            <Textarea
+            <TextArea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional note for the count sheet"

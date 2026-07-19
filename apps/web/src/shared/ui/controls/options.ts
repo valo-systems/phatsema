@@ -85,11 +85,3 @@ export const ASSET_STATUS_VALUES = [
   'out_of_service',
   'retired',
 ] as const;
-
-export const ISSUE_PURPOSE_VALUES = [
-  'site_consumption',
-  'project',
-  'maintenance',
-  'fabrication_job',
-  'cost_centre',
-] as const;

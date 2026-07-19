@@ -6,7 +6,7 @@ import { isApiError } from '@/shared/api/problem';
 import { Dialog } from '@/shared/ui/overlays';
 import { Button } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Input, FormSelect } from '@/shared/ui/controls';
+import { TextField, FormSelect } from '@/shared/ui/controls';
 import { enumOptions } from '@/shared/ui/controls/options';
 import { toast } from '@/shared/ui/toast';
 import { useCreateSite, useUpdateSite, type Site } from './api';
@@ -156,7 +156,7 @@ export function SiteFormDialog({ open, onOpenChange, site }: Props) {
         </Field>
 
         <Field label="Name" required error={form.formState.errors.name?.message}>
-          <Input {...form.register('name')} placeholder="e.g. DEMO Johannesburg Warehouse" maxLength={100} />
+          <TextField {...form.register('name')} placeholder="e.g. DEMO Johannesburg Warehouse" maxLength={100} />
         </Field>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -189,10 +189,10 @@ export function SiteFormDialog({ open, onOpenChange, site }: Props) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Contact name" error={form.formState.errors.contactName?.message}>
-            <Input {...form.register('contactName')} placeholder="Optional" maxLength={100} />
+            <TextField {...form.register('contactName')} placeholder="Optional" maxLength={100} />
           </Field>
           <Field label="Contact phone" error={form.formState.errors.contactPhone?.message}>
-            <Input {...form.register('contactPhone')} placeholder="Optional" maxLength={30} />
+            <TextField {...form.register('contactPhone')} placeholder="Optional" maxLength={30} />
           </Field>
         </div>
       </form>

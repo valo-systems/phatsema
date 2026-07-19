@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { Dialog as ArkDialog, Menu as ArkMenu, Popover as ArkPopover, Tabs as ArkTabs, Tooltip as ArkTooltip, Portal } from '@ark-ui/react';
+import { Dialog as ArkDialog, Popover as ArkPopover, Tabs as ArkTabs, Portal } from '@ark-ui/react';
 import { X } from 'lucide-react';
 import { cn } from './cn';
 import { OverlayPortalContext } from './portal-context';
@@ -156,43 +156,6 @@ export function ConfirmDialog({
   );
 }
 
-/* ---------- Dropdown menu ---------- */
-
-export function Menu({
-  trigger,
-  items,
-}: {
-  trigger: ReactNode;
-  items: Array<{ label: string; onSelect: () => void; danger?: boolean; disabled?: boolean }>;
-}) {
-  return (
-    <ArkMenu.Root positioning={{ placement: 'bottom-end', gutter: 6 }}>
-      <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
-      <Portal>
-        <ArkMenu.Positioner>
-          <ArkMenu.Content className="z-50 min-w-44 rounded-md border border-line bg-surface p-1 shadow-medium data-[state=open]:motion-safe:animate-slide-down">
-            {items.map((item) => (
-              <ArkMenu.Item
-                key={item.label}
-                value={item.label}
-                disabled={item.disabled ?? false}
-                onSelect={item.onSelect}
-                className={cn(
-                  'cursor-default rounded-sm px-2.5 py-1.5 text-sm outline-none select-none',
-                  'data-[highlighted]:bg-sunken data-[disabled]:text-faint',
-                  item.danger ? 'text-danger data-[highlighted]:bg-danger-soft' : 'text-ink',
-                )}
-              >
-                {item.label}
-              </ArkMenu.Item>
-            ))}
-          </ArkMenu.Content>
-        </ArkMenu.Positioner>
-      </Portal>
-    </ArkMenu.Root>
-  );
-}
-
 /* ---------- Popover ---------- */
 
 export function Popover({
@@ -231,21 +194,6 @@ export function Popover({
 
 export function TooltipProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
-}
-
-export function Tooltip({ content, children }: { content: string; children: ReactNode }) {
-  return (
-    <ArkTooltip.Root openDelay={350} closeDelay={100}>
-      <ArkTooltip.Trigger asChild>{children}</ArkTooltip.Trigger>
-      <Portal>
-        <ArkTooltip.Positioner>
-          <ArkTooltip.Content className="z-50 rounded-md bg-shell px-2.5 py-1.5 text-xs text-shell-ink shadow-medium data-[state=open]:motion-safe:animate-fade-in">
-            {content}
-          </ArkTooltip.Content>
-        </ArkTooltip.Positioner>
-      </Portal>
-    </ArkTooltip.Root>
-  );
 }
 
 /* ---------- Tabs ---------- */

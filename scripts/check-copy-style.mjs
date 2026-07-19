@@ -8,8 +8,14 @@ const roots = [
   resolve(root, 'apps/web/public'),
   resolve(root, 'apps/api/app'),
   resolve(root, 'apps/api/resources/demo'),
+  resolve(root, 'docs'),
 ];
-const standaloneFiles = [resolve(root, 'apps/web/index.html')];
+const standaloneFiles = [
+  resolve(root, 'README.md'),
+  resolve(root, 'package.json'),
+  resolve(root, 'apps/web/index.html'),
+  resolve(root, 'packages/contracts/openapi.yaml'),
+];
 const supportedExtensions = new Set(['.css', '.html', '.js', '.json', '.php', '.ts', '.tsx']);
 const excludedDirectories = new Set(['coverage', 'dist', 'node_modules', 'playwright-report', 'test-results', 'vendor']);
 const violations = [];

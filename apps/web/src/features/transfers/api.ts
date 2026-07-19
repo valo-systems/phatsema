@@ -3,9 +3,7 @@ import type { components, operations } from '@phatsema/contracts/api';
 import { api, unwrap } from '@/shared/api/client';
 
 export type Transfer = components['schemas']['Transfer'];
-export type TransferLine = components['schemas']['TransferLine'];
 export type TransferInput = components['schemas']['TransferInput'];
-export type TransferUpdate = components['schemas']['TransferUpdate'];
 export type TransferDispatchInput = components['schemas']['TransferDispatchInput'];
 export type TransferReceiveInput = components['schemas']['TransferReceiveInput'];
 export type PageMeta = components['schemas']['PageMeta'];
@@ -54,17 +52,6 @@ export function useCreateTransfer() {
   return useMutation({
     mutationFn: async (input: TransferInput) =>
       unwrap<{ data: Transfer }>(await api.POST('/transfers', { body: input })).data,
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdateTransfer(transferId: string) {
-  const invalidate = useInvalidateTransfers();
-  return useMutation({
-    mutationFn: async (input: TransferUpdate) =>
-      unwrap<{ data: Transfer }>(
-        await api.PATCH('/transfers/{transferId}', { params: { path: { transferId } }, body: input }),
-      ).data,
     onSuccess: invalidate,
   });
 }

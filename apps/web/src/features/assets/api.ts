@@ -5,7 +5,6 @@ import { api, unwrap } from '@/shared/api/client';
 export type Asset = components['schemas']['Asset'];
 export type AssetDetail = components['schemas']['AssetDetail'];
 export type AssetInput = components['schemas']['AssetInput'];
-export type AssetUpdate = components['schemas']['AssetUpdate'];
 export type AssetAssignInput = components['schemas']['AssetAssignInput'];
 export type AssetStatusInput = components['schemas']['AssetStatusInput'];
 export type MeterReadingInput = components['schemas']['MeterReadingInput'];
@@ -52,17 +51,6 @@ export function useCreateAsset() {
   return useMutation({
     mutationFn: async (input: AssetInput) =>
       unwrap<{ data: Asset }>(await api.POST('/assets', { body: input })).data,
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdateAsset(assetId: string) {
-  const invalidate = useInvalidateAssets();
-  return useMutation({
-    mutationFn: async (input: AssetUpdate) =>
-      unwrap<{ data: Asset }>(
-        await api.PATCH('/assets/{assetId}', { params: { path: { assetId } }, body: input }),
-      ).data,
     onSuccess: invalidate,
   });
 }

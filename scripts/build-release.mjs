@@ -12,6 +12,16 @@ const stagingParent = await mkdtemp(join(tmpdir(), 'phatsema-release-'));
 const staging = join(stagingParent, releaseId);
 const application = join(staging, 'apps', 'phatsema-api');
 const publicRoot = join(staging, 'public_html', 'portal');
+const revisionResult = spawnSync('git', ['rev-parse', 'HEAD'], {
+  cwd: root,
+  encoding: 'utf8',
+});
+const sourceRevision = revisionResult.status === 0 ? revisionResult.stdout.trim() : null;
+const dirtyResult = spawnSync('git', ['status', '--porcelain'], {
+  cwd: root,
+  encoding: 'utf8',
+});
+const sourceTreeDirty = dirtyResult.status === 0 && dirtyResult.stdout.trim().length > 0;
 
 function run(command, args, cwd = root, environment = {}) {
   const result = spawnSync(command, args, {
@@ -42,6 +52,8 @@ try {
   run('pnpm', ['contract:check-drift']);
   run('pnpm', ['fixtures:validate']);
   run('pnpm', ['php:parse']);
+  run('pnpm', ['dead-code:check']);
+  run('pnpm', ['docs:check']);
   run('composer', ['validate', '--strict'], join(root, 'apps/api'));
   run('php', ['artisan', 'test'], join(root, 'apps/api'));
   run('vendor/bin/pint', ['--test'], join(root, 'apps/api'));
@@ -59,15 +71,12 @@ try {
     '.gitignore',
     '.npmrc',
     '.phpunit.result.cache',
-    'README.md',
     'node_modules',
-    'package.json',
     'phpstan.neon',
     'phpunit.xml',
     'pint.json',
     'public',
     'tests',
-    'vite.config.js',
   ]);
   await cp(apiSource, application, {
     recursive: true,
@@ -83,7 +92,7 @@ try {
   await cp(join(root, 'apps/web/dist'), publicRoot, { recursive: true });
   await cp(join(root, 'scripts/cpanel/index.php'), join(publicRoot, 'index.php'));
   await cp(join(root, 'apps/api/.env.cpanel.example'), join(staging, '.env.cpanel.example'));
-  await cp(join(root, 'docs/12-build-record.md'), join(staging, 'DEPLOYMENT.md'));
+  await cp(join(root, 'docs/deployment-cpanel.md'), join(staging, 'DEPLOYMENT.md'));
 
   for (const runtimePath of [
     'storage/framework/cache',
@@ -115,8 +124,13 @@ try {
     application: 'Phatsema Portal',
     version,
     builtAt: new Date().toISOString(),
-    sourceRevision: null,
-    sourceRevisionNote: 'Source workspace did not contain Git metadata.',
+    sourceRevision,
+    sourceTreeDirty,
+    sourceRevisionNote: sourceRevision === null
+      ? 'Source workspace did not contain Git metadata.'
+      : sourceTreeDirty
+        ? 'Archive built from working-tree changes based on this revision.'
+        : undefined,
     runtime: {
       frontend: 'static Vite build',
       api: 'Laravel/PHP',

@@ -7,7 +7,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button, DatePicker } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Input, Select, NumberField, Textarea } from '@/shared/ui/controls';
+import { TextField, Select, NumberField, TextArea } from '@/shared/ui/controls';
 import { LineItemEditor } from '@/shared/ui/data/CompactTable';
 import { ConfirmDialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
@@ -135,7 +135,7 @@ export function ReceivePage() {
             <Select value={locationId} onValueChange={setLocationId} disabled={!siteId} options={activeLocations.map((location) => ({ value: location.id, label: location.name }))} placeholder="Select location" />
           </Field>
           <Field label="Supplier / delivery reference" required hint="For example DEMO-DN-4482">
-            <Input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} />
+            <TextField value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} />
           </Field>
           <Field label="Receipt date" required>
             <DatePicker aria-label="Receipt date" value={receivedAt} max={todayISODate()} onValueChange={setReceivedAt} />
@@ -183,7 +183,7 @@ export function ReceivePage() {
                       </td>
                       <td className="border-b border-line px-2 py-2">
                         {line.item.trackingMode === 'batch' ? (
-                          <Input
+                          <TextField
                             aria-label={`Batch code for ${line.item.sku}`}
                             value={line.batchCode}
                             onChange={(event) => updateLine(line.item.id, { batchCode: event.target.value })}
@@ -213,7 +213,7 @@ export function ReceivePage() {
         <CardHeader title="3. Notes" description="Optional context for the audit trail." />
         <div className="px-4 py-4 sm:px-5">
           <Field label="Notes">
-            <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} />
+            <TextArea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} />
           </Field>
         </div>
       </Card>

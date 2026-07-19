@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { Card, CardHeader } from '@/shared/ui/surfaces';
 import { Button, DatePicker } from '@/shared/ui/controls';
 import { Field, ErrorSummary } from '@/shared/ui/controls';
-import { Select, NumberField, Textarea } from '@/shared/ui/controls';
+import { Select, NumberField, TextArea } from '@/shared/ui/controls';
 import { ConfirmDialog } from '@/shared/ui/overlays';
 import { toast } from '@/shared/ui/toast';
 import { isPositiveDec, isValidQuantity } from '@/shared/format/dec';
@@ -180,7 +180,7 @@ export function AdjustPage() {
         <CardHeader title="3. Notes" description="Evidence or context for the audit trail." />
         <div className="px-4 py-4 sm:px-5">
           <Field label="Notes">
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
+            <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
           </Field>
         </div>
       </Card>

@@ -1,4 +1,4 @@
-import { Checkbox as ArkCheckbox, RadioGroup as ArkRadioGroup, Switch as ArkSwitch } from '@ark-ui/react';
+import { Checkbox as ArkCheckbox, Switch as ArkSwitch } from '@ark-ui/react';
 import { Check, Minus } from 'lucide-react';
 import { cn } from '@/shared/ui/cn';
 
@@ -47,51 +47,6 @@ export function Checkbox({
       <ArkCheckbox.Label className={cn(hideLabel && 'sr-only')}>{label}</ArkCheckbox.Label>
       <ArkCheckbox.HiddenInput />
     </ArkCheckbox.Root>
-  );
-}
-
-export function RadioGroup({
-  value,
-  onValueChange,
-  options,
-  orientation = 'vertical',
-  className,
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-  options: Array<{ value: string; label: string; description?: string; disabled?: boolean }>;
-  orientation?: 'vertical' | 'horizontal';
-  className?: string | undefined;
-}) {
-  return (
-    <ArkRadioGroup.Root
-      value={value}
-      onValueChange={(details) => onValueChange(details.value ?? '')}
-      orientation={orientation}
-      className={cn('flex gap-3', orientation === 'vertical' ? 'flex-col' : 'flex-wrap', className)}
-    >
-      {options.map((option) => (
-        <ArkRadioGroup.Item
-          key={option.value}
-          value={option.value}
-          disabled={option.disabled ?? false}
-          className={rowLabel}
-        >
-          <ArkRadioGroup.ItemControl
-            className={cn(
-              box,
-              'focus-ring rounded-pill',
-              'data-[state=checked]:border-[5px] data-[state=checked]:border-primary data-[state=checked]:bg-surface',
-            )}
-          />
-          <span className="min-w-0">
-            <ArkRadioGroup.ItemText>{option.label}</ArkRadioGroup.ItemText>
-            {option.description && <span className="block text-xs text-muted">{option.description}</span>}
-          </span>
-          <ArkRadioGroup.ItemHiddenInput />
-        </ArkRadioGroup.Item>
-      ))}
-    </ArkRadioGroup.Root>
   );
 }
 

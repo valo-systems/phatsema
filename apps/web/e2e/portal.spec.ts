@@ -13,6 +13,7 @@ interface ApiResult<T> {
 
 async function loginAs(page: Page, persona = 'System Administrator') {
   await page.goto('/login');
+  await page.getByRole('button', { name: 'Demo personas' }).click();
   await page.getByRole('button', { name: new RegExp(`^${persona}`) }).click();
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -61,6 +62,28 @@ test('1: authenticates every demo persona and preserves role identity', async ({
     ['Executive Viewer', 'executive_viewer'],
   ] as const;
 
+  await page.goto('/login');
+  const personaToggle = page.getByRole('button', { name: 'Demo personas' });
+  await expect(personaToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('button', { name: /^System Administrator/ })).toBeHidden();
+  await personaToggle.click();
+  await expect(personaToggle).toHaveAttribute('aria-expanded', 'true');
+  const administratorPersona = page.getByRole('button', { name: /^System Administrator/ });
+  await expect(administratorPersona).toBeVisible();
+  await administratorPersona.click();
+  await expect(page.getByLabel('Email address')).toHaveValue('admin@demo.phatsema.example');
+  await expect(page.locator('input[name="password"]')).toHaveValue('PhatsemaDemo1');
+  await expect(personaToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(administratorPersona).toBeHidden();
+
+  const password = page.locator('input[name="password"]');
+  await expect(password).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Show password' }).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await expect(password).toHaveValue('PhatsemaDemo1');
+  await page.getByRole('button', { name: 'Hide password' }).click();
+  await expect(password).toHaveAttribute('type', 'password');
+
   for (const [persona, role] of personas) {
     await loginAs(page, persona);
     const current = await api<{ data: { roles: Array<{ id: string }> } }>(page, '/auth/me');
@@ -80,7 +103,7 @@ test('1: authenticates every demo persona and preserves role identity', async ({
 test('2: rejects invalid credentials without leaking account details', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Email').fill('admin@demo.phatsema.example');
-  await page.getByLabel('Password').fill('incorrect-password');
+  await page.locator('input[name="password"]').fill('incorrect-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByText('Sign-in failed')).toBeVisible();
   await expect(page).toHaveURL(/\/login$/);

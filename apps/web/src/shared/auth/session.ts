@@ -48,7 +48,3 @@ export function useLogout() {
 export function can(user: SessionUser | undefined, permission: string): boolean {
   return user?.permissions.includes(permission) ?? false;
 }
-
-export function canAnywhere(user: SessionUser | undefined, ...permissions: string[]): boolean {
-  return permissions.some((p) => can(user, p));
-}

@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Filter, Search, X } from 'lucide-react';
-import { cn } from '@/shared/ui/cn';
-import { Button, IconButton } from '@/shared/ui/controls/Button';
+import { Button } from '@/shared/ui/controls/Button';
 import { Select, type SelectOption } from '@/shared/ui/controls/Select';
 import { TextField } from '@/shared/ui/controls/TextField';
 import { DatePicker } from '@/shared/ui/controls/DatePicker';
@@ -148,37 +147,6 @@ export function DataToolbar({
           </div>
         </div>
       </Drawer>
-    </div>
-  );
-}
-
-/** Active filters rendered as removable chips, shown under the toolbar. */
-export function FilterChips({
-  chips,
-  onRemove,
-}: {
-  chips: Array<{ key: string; label: string; value: string }>;
-  onRemove: (key: string) => void;
-}) {
-  if (chips.length === 0) return null;
-  return (
-    <div className={cn('flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2')}>
-      {chips.map((chip) => (
-        <span
-          key={chip.key}
-          className="inline-flex items-center gap-1 rounded-pill border border-line-strong bg-sunken py-0.5 pr-0.5 pl-2.5 text-xs text-ink-secondary"
-        >
-          <span className="text-muted">{chip.label}:</span> {chip.value}
-          <IconButton
-            size="sm"
-            variant="ghost"
-            aria-label={`Remove ${chip.label} filter`}
-            onClick={() => onRemove(chip.key)}
-            icon={<X aria-hidden className="size-3" />}
-            className="size-5 rounded-pill"
-          />
-        </span>
-      ))}
     </div>
   );
 }
