@@ -10,6 +10,7 @@ readonly PROJECT_ROOT="$(cd -- "${SCRIPT_DIRECTORY}/.." && pwd -P)"
 readonly RELEASE_DIRECTORY="${PROJECT_ROOT}/release"
 readonly RELEASE_ARCHIVE="${RELEASE_DIRECTORY}/${RELEASE_NAME}.tar.gz"
 readonly RELEASE_CHECKSUM="${RELEASE_ARCHIVE}.sha256"
+readonly PHP_RUNTIME="/opt/alt/php85/usr/bin/php"
 
 STAGING_DIRECTORY=""
 
@@ -64,6 +65,11 @@ if [[ "${1:-}" == "--check" ]]; then
     exit 0
 fi
 
+if [[ ! -x "${PHP_RUNTIME}" ]]; then
+    echo "Refusing deployment: PHP 8.5 runtime not found at ${PHP_RUNTIME}." >&2
+    exit 1
+fi
+
 /bin/mkdir -p -- "${DEPLOY_DOCROOT}" "${DEPLOY_APPROOT}"
 
 # Replace application code while retaining server configuration and runtime data.
@@ -87,7 +93,7 @@ fi
 if [[ -f "${DEPLOY_APPROOT}/.env" ]]; then
     (
         cd -- "${DEPLOY_APPROOT}"
-        /usr/bin/env php artisan optimize
+        "${PHP_RUNTIME}" artisan optimize
     )
 else
     echo "Deployment copied successfully, but ${DEPLOY_APPROOT}/.env must be created before the portal can run." >&2
