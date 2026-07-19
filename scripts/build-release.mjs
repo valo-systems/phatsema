@@ -13,8 +13,12 @@ const staging = join(stagingParent, releaseId);
 const application = join(staging, 'apps', 'phatsema-api');
 const publicRoot = join(staging, 'public_html', 'portal');
 
-function run(command, args, cwd = root) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit' });
+function run(command, args, cwd = root, environment = {}) {
+  const result = spawnSync(command, args, {
+    cwd,
+    env: { ...process.env, ...environment },
+    stdio: 'inherit',
+  });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
@@ -131,7 +135,12 @@ try {
   await mkdir(releaseRoot, { recursive: true });
   const archive = join(releaseRoot, `${releaseId}.tar.gz`);
   await rm(archive, { force: true });
-  run('tar', ['-czf', archive, '-C', stagingParent, releaseId]);
+  run(
+    'tar',
+    ['-czf', archive, '-C', stagingParent, releaseId],
+    root,
+    { COPYFILE_DISABLE: '1' },
+  );
   const archiveHash = createHash('sha256').update(await readFile(archive)).digest('hex');
   await writeFile(`${archive}.sha256`, `${archiveHash}  ${basename(archive)}\n`);
   console.log(`Release created: ${archive}`);
