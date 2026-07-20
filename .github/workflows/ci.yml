@@ -26,7 +26,14 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          coverage: none
+          tools: composer:v2
       - run: pnpm install --frozen-lockfile
+      - run: composer install --no-interaction --prefer-dist --no-progress
+        working-directory: apps/api
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:coverage
@@ -41,6 +48,9 @@ jobs:
     name: Laravel quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      APP_ENV: testing
+      APP_KEY: "base64:JTbeg0xrNhaRIBT/752e0sxjIhDTv3bh1Xwn+CljyIs="
     defaults:
       run:
         working-directory: apps/api
