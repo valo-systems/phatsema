@@ -190,6 +190,55 @@ jobs:
           git remote add cpanel "ssh://${CPANEL_USER}@${CPANEL_HOST}:${CPANEL_PORT}${CPANEL_REPOSITORY}"
           GIT_SSH_COMMAND="ssh -i $HOME/.ssh/cpanel_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p ${CPANEL_PORT}" \
             git push cpanel HEAD:main
+      - name: Confirm cPanel deployment
+        run: |
+          release_sha="$(git rev-parse HEAD)"
+          for attempt in $(seq 1 30); do
+            deployments="$(
+              ssh -i "$HOME/.ssh/cpanel_deploy" \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes \
+                -p "$CPANEL_PORT" \
+                "${CPANEL_USER}@${CPANEL_HOST}" \
+                "/usr/bin/uapi --output=json VersionControlDeployment retrieve"
+            )"
+            deployment="$(
+              jq -c \
+                --arg repository "$CPANEL_REPOSITORY" \
+                --arg revision "$release_sha" \
+                '[.result.data[] |
+                  select(
+                    .repository_root == $repository and
+                    .repository_state.identifier == $revision
+                  )
+                ] | sort_by(.deploy_id) | last // empty' \
+                <<< "$deployments"
+            )"
+
+            if [[ -z "$deployment" ]]; then
+              sleep 2
+              continue
+            fi
+            if jq -e '.timestamps.succeeded' <<< "$deployment" > /dev/null; then
+              echo "cPanel deployed release ${release_sha}."
+              exit 0
+            fi
+            if jq -e '.timestamps.failed' <<< "$deployment" > /dev/null; then
+              log_path="$(jq -r '.log_path' <<< "$deployment")"
+              echo "cPanel deployment failed. Server log follows:" >&2
+              ssh -i "$HOME/.ssh/cpanel_deploy" \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes \
+                -p "$CPANEL_PORT" \
+                "${CPANEL_USER}@${CPANEL_HOST}" \
+                "sed -n '1,260p' '$log_path'" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "Timed out waiting for cPanel deployment confirmation." >&2
+          exit 1
       - name: Verify production
         run: |
           curl --fail --silent --show-error --retry 5 --retry-delay 3 "${PRODUCTION_URL}/" > /dev/null
