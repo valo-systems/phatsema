@@ -59,7 +59,8 @@ The production job:
 3. Commits the archive and checksum to `cpanel-release`.
 4. Pushes that commit to the cPanel-managed repository over a dedicated SSH key.
 5. Lets cPanel run `.cpanel.yml` and `scripts/deploy-cpanel.sh`.
-6. Verifies the public application and anonymous authentication response.
+6. Polls cPanel's deployment task and fails with the server log if deployment fails.
+7. Verifies the public application and anonymous authentication response.
 
 The deployment script validates checksums before changing live files. It preserves `.env`, application storage, `.well-known`, and the live `.htaccess`, then runs Laravel optimisation when the production `.env` exists.
 
