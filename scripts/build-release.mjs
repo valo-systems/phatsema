@@ -16,12 +16,17 @@ const revisionResult = spawnSync('git', ['rev-parse', 'HEAD'], {
   cwd: root,
   encoding: 'utf8',
 });
-const sourceRevision = revisionResult.status === 0 ? revisionResult.stdout.trim() : null;
+const detectedSourceRevision = revisionResult.status === 0 ? revisionResult.stdout.trim() : null;
+const sourceRevision = process.env.PHATSEMA_SOURCE_REVISION?.trim() || detectedSourceRevision;
 const dirtyResult = spawnSync('git', ['status', '--porcelain'], {
   cwd: root,
   encoding: 'utf8',
 });
-const sourceTreeDirty = dirtyResult.status === 0 && dirtyResult.stdout.trim().length > 0;
+const detectedSourceTreeDirty = dirtyResult.status === 0 && dirtyResult.stdout.trim().length > 0;
+const sourceTreeDirty = process.env.PHATSEMA_SOURCE_TREE_DIRTY === undefined
+  ? detectedSourceTreeDirty
+  : process.env.PHATSEMA_SOURCE_TREE_DIRTY === 'true';
+const packageOnly = process.env.PHATSEMA_RELEASE_PACKAGE_ONLY === '1';
 
 function run(command, args, cwd = root, environment = {}) {
   const result = spawnSync(command, args, {
@@ -43,23 +48,25 @@ async function walk(directory) {
 }
 
 try {
-  run('pnpm', ['lint']);
-  run('pnpm', ['typecheck']);
-  run('pnpm', ['test']);
-  run('pnpm', ['--filter', '@phatsema/web', 'test:coverage']);
-  run('pnpm', ['build']);
-  run('pnpm', ['test:e2e']);
-  run('pnpm', ['contract:check-drift']);
-  run('pnpm', ['fixtures:validate']);
-  run('pnpm', ['php:parse']);
-  run('pnpm', ['dead-code:check']);
-  run('pnpm', ['docs:check']);
-  run('composer', ['validate', '--strict'], join(root, 'apps/api'));
-  run('php', ['artisan', 'test'], join(root, 'apps/api'));
-  run('vendor/bin/pint', ['--test'], join(root, 'apps/api'));
-  const phpstan = join(stagingParent, 'phpstan.phar');
-  await cp(join(root, 'apps/api/vendor/phpstan/phpstan/phpstan.phar'), phpstan);
-  run('php', [phpstan, 'analyse', '--no-progress', '--memory-limit=1G'], join(root, 'apps/api'));
+  if (!packageOnly) {
+    run('pnpm', ['lint']);
+    run('pnpm', ['typecheck']);
+    run('pnpm', ['test']);
+    run('pnpm', ['--filter', '@phatsema/web', 'test:coverage']);
+    run('pnpm', ['build']);
+    run('pnpm', ['test:e2e']);
+    run('pnpm', ['contract:check-drift']);
+    run('pnpm', ['fixtures:validate']);
+    run('pnpm', ['php:parse']);
+    run('pnpm', ['dead-code:check']);
+    run('pnpm', ['docs:check']);
+    run('composer', ['validate', '--strict'], join(root, 'apps/api'));
+    run('php', ['artisan', 'test'], join(root, 'apps/api'));
+    run('vendor/bin/pint', ['--test'], join(root, 'apps/api'));
+    const phpstan = join(stagingParent, 'phpstan.phar');
+    await cp(join(root, 'apps/api/vendor/phpstan/phpstan/phpstan.phar'), phpstan);
+    run('php', [phpstan, 'analyse', '--no-progress', '--memory-limit=1G'], join(root, 'apps/api'));
+  }
 
   await mkdir(application, { recursive: true });
   const apiSource = join(root, 'apps/api');

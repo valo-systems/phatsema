@@ -13,7 +13,10 @@ flowchart TD
     Private --> Env["Persistent .env"]
     Private --> Storage["Persistent storage and sessions"]
 
-    Repo["Git repository"] --> CPanel["cPanel Deploy HEAD Commit"]
+    Main["GitHub main"] --> CI["GitHub Actions quality gates"]
+    CI --> Release["Build cpanel-release branch"]
+    Release --> Repo["cPanel Git repository"]
+    Repo --> CPanel["Native cPanel push-deployment hook"]
     CPanel --> Script["scripts/deploy-cpanel.sh"]
     Script --> Docroot
     Script --> Private
@@ -43,14 +46,26 @@ release/phatsema-portal-1.0.0.tar.gz
 release/phatsema-portal-1.0.0.tar.gz.sha256
 ```
 
-## Deploy
+`pnpm release:package` is reserved for CI after all quality jobs pass. It packages the already-tested revision without rerunning the complete suite.
 
-1. Commit the verified archive and checksum with the source revision.
-2. In cPanel Git Version Control, update from the remote.
-3. Select **Deploy HEAD Commit**.
-4. The deployment script validates the checksum before changing live files.
-5. It preserves `.env`, application storage, `.well-known`, and the live `.htaccess`.
-6. It runs Laravel optimisation when the production `.env` exists.
+## Automated deployment
+
+Every push to `main` starts the continuous-integration workflow. Production deployment runs only after the frontend, backend, browser, documentation, contract, and bundle-integrity jobs pass.
+
+The production job:
+
+1. Merges the tested `main` revision into the `cpanel-release` branch.
+2. Rebuilds the frontend and creates a release bundle linked to the tested source SHA.
+3. Commits the archive and checksum to `cpanel-release`.
+4. Pushes that commit to the cPanel-managed repository over a dedicated SSH key.
+5. Lets cPanel run `.cpanel.yml` and `scripts/deploy-cpanel.sh`.
+6. Verifies the public application and anonymous authentication response.
+
+The deployment script validates checksums before changing live files. It preserves `.env`, application storage, `.well-known`, and the live `.htaccess`, then runs Laravel optimisation when the production `.env` exists.
+
+The GitHub `production` environment stores the SSH private key and pinned host keys. Repository code contains only non-sensitive connection settings. Rotate the key in both GitHub and cPanel if it is ever exposed.
+
+The cPanel interface is retained for deployment history and emergency operations, but normal releases do not require **Update from Remote** or **Deploy HEAD Commit**.
 
 ## Smoke test
 
@@ -62,3 +77,5 @@ release/phatsema-portal-1.0.0.tar.gz.sha256
 - Logout invalidates the session.
 
 Rollback by deploying a previously verified commit and its matching archive. Never copy the private application into the public document root.
+
+For an automated rollback, reset `cpanel-release` to the required verified deployment commit through a reviewed workflow change, then push that commit to cPanel. Do not rewrite `main`.

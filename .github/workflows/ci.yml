@@ -119,3 +119,79 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: bash scripts/deploy-cpanel.sh --check
+
+  production:
+    name: Build and deploy production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [frontend, backend, browser, deployment]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    env:
+      CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+      CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+      CPANEL_REPOSITORY: ${{ vars.CPANEL_REPOSITORY }}
+      CPANEL_USER: ${{ vars.CPANEL_USER }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          coverage: none
+          tools: composer:v2
+      - run: pnpm install --frozen-lockfile
+      - run: composer install --no-interaction --prefer-dist --no-progress
+        working-directory: apps/api
+      - name: Prepare deployment branch
+        run: |
+          git config user.name "Valo Systems Release Bot"
+          git config user.email "engineering@valosystems.co.za"
+          if git fetch origin cpanel-release; then
+            git switch --force-create cpanel-release origin/cpanel-release
+            git merge --no-edit "$GITHUB_SHA"
+          else
+            git switch --create cpanel-release "$GITHUB_SHA"
+          fi
+      - run: pnpm build
+      - name: Package tested revision
+        env:
+          PHATSEMA_SOURCE_REVISION: ${{ github.sha }}
+          PHATSEMA_SOURCE_TREE_DIRTY: "false"
+        run: pnpm release:package
+      - name: Commit release bundle
+        run: |
+          git add release/phatsema-portal-1.0.0.tar.gz release/phatsema-portal-1.0.0.tar.gz.sha256
+          git commit --allow-empty -m "Deploy ${GITHUB_SHA}"
+          git push origin cpanel-release
+      - name: Configure cPanel SSH
+        env:
+          CPANEL_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+          CPANEL_SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$CPANEL_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$CPANEL_SSH_PRIVATE_KEY" > "$HOME/.ssh/cpanel_deploy"
+          chmod 600 "$HOME/.ssh/known_hosts" "$HOME/.ssh/cpanel_deploy"
+      - name: Push to cPanel and run native deployment hook
+        run: |
+          git remote add cpanel "ssh://${CPANEL_USER}@${CPANEL_HOST}:${CPANEL_PORT}${CPANEL_REPOSITORY}"
+          GIT_SSH_COMMAND="ssh -i $HOME/.ssh/cpanel_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p ${CPANEL_PORT}" \
+            git push cpanel HEAD:main
+      - name: Verify production
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "${PRODUCTION_URL}/" > /dev/null
+          auth_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --retry 5 --retry-delay 3 "${PRODUCTION_URL}/api/v1/auth/me")"
+          test "$auth_status" = "401"
