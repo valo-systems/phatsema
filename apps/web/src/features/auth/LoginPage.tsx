@@ -107,7 +107,7 @@ export function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-shell">
+    <main className="relative min-h-screen overflow-x-hidden bg-shell">
       <img
         src={warehouseHero}
         alt=""
@@ -124,36 +124,68 @@ export function LoginPage() {
         className="absolute -bottom-40 -left-40 h-[42rem] w-[42rem] rounded-full bg-primary/20 blur-3xl"
       />
 
-      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-[1680px] lg:grid-cols-[minmax(25rem,1fr)_minmax(31rem,0.82fr)]">
-        <section className="relative hidden min-h-screen items-center overflow-hidden px-12 py-16 lg:flex xl:px-20 2xl:px-24">
-          <div
+      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-[1600px] lg:grid-cols-[minmax(28rem,0.94fr)_minmax(30rem,0.86fr)]">
+        <section className="relative hidden min-h-screen items-center overflow-hidden px-12 py-12 lg:flex xl:pl-20 xl:pr-10 2xl:pl-24">
+          <svg
             aria-hidden
-            className="absolute -top-[12vh] -right-[10vw] h-[124vh] w-[36vw] min-w-[34rem] rounded-[50%] border-r border-primary/55 bg-[linear-gradient(90deg,rgba(5,16,30,0.15),rgba(7,21,36,0.42))]"
-          />
+            viewBox="0 0 760 900"
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute inset-0 h-full w-full"
+          >
+            <defs>
+              <linearGradient id="login-arc-metal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#86a9bd" stopOpacity="0.05" />
+                <stop offset="28%" stopColor="#b8d0dc" stopOpacity="0.42" />
+                <stop offset="48%" stopColor="#f2f7f8" stopOpacity="0.7" />
+                <stop offset="69%" stopColor="#4eb995" stopOpacity="0.48" />
+                <stop offset="100%" stopColor="#0ea47f" stopOpacity="0.06" />
+              </linearGradient>
+              <filter id="login-arc-glow" x="-50%" y="-10%" width="200%" height="120%">
+                <feGaussianBlur stdDeviation="3.2" />
+              </filter>
+            </defs>
+            <path
+              d="M 354 -20 C 418 126 510 286 520 447 C 534 654 424 821 286 930"
+              fill="none"
+              stroke="url(#login-arc-metal)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              opacity="0.22"
+              filter="url(#login-arc-glow)"
+            />
+            <path
+              d="M 354 -20 C 418 126 510 286 520 447 C 534 654 424 821 286 930"
+              fill="none"
+              stroke="url(#login-arc-metal)"
+              strokeWidth="1.15"
+              strokeLinecap="round"
+              opacity="0.76"
+            />
+          </svg>
 
-          <div className="relative z-10 max-w-md">
-            <img src={logoReversed} alt="Phatsema Projects & Supplies" className="h-auto w-72 max-w-full" />
+          <div className="relative z-10 max-w-[29rem]">
+            <img src={logoReversed} alt="Phatsema Projects & Supplies" className="h-auto w-64 max-w-full" />
 
-            <h1 className="mt-14 text-4xl font-semibold leading-[1.12] tracking-[-0.035em] text-white xl:text-5xl">
+            <h1 className="mt-10 max-w-[28rem] text-4xl font-semibold leading-[1.1] tracking-[-0.035em] text-white xl:text-[2.75rem]">
               Smarter inventory.
               <span className="mt-1 block text-primary-ring">Stronger operations.</span>
             </h1>
-            <p className="mt-7 max-w-[27rem] text-base leading-relaxed text-shell-muted xl:text-lg">
+            <p className="mt-5 max-w-[25rem] text-[15px] leading-6 text-shell-muted xl:text-base">
               Phatsema Back-office Portal gives you complete control of your multi-site inventory,
               transfers, counts, and assets.
             </p>
 
-            <ul className="mt-10 space-y-7">
+            <ul className="mt-8 space-y-5">
               {BENEFITS.map((benefit) => {
                 const BenefitIcon = benefit.icon;
                 return (
-                  <li key={benefit.title} className="flex gap-4">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-lg border border-primary-ring/70 bg-primary/10 text-primary-ring">
-                      <BenefitIcon aria-hidden className="size-5" />
+                  <li key={benefit.title} className="flex items-start gap-3.5">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-primary-ring/60 bg-primary/10 text-primary-ring">
+                      <BenefitIcon aria-hidden className="size-[18px]" />
                     </span>
-                    <span>
-                      <span className="block font-semibold text-white">{benefit.title}</span>
-                      <span className="mt-0.5 block max-w-[20rem] text-sm leading-relaxed text-shell-muted">
+                    <span className="pt-0.5">
+                      <span className="block text-sm font-semibold text-white">{benefit.title}</span>
+                      <span className="mt-0.5 block max-w-[19rem] text-[13px] leading-5 text-shell-muted">
                         {benefit.description}
                       </span>
                     </span>
@@ -164,22 +196,22 @@ export function LoginPage() {
           </div>
         </section>
 
-        <section className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-8 lg:px-10 lg:py-10 xl:px-14">
-          <div className="w-full max-w-[35rem]">
-            <div className="rounded-xl border border-white/55 bg-surface px-5 py-7 shadow-[0_28px_80px_rgba(3,12,24,0.42)] sm:px-9 sm:py-9 xl:px-12 xl:py-10">
+        <section className="flex min-h-screen items-center justify-center px-4 py-5 sm:px-7 sm:py-7 lg:justify-start lg:px-6 lg:py-8 xl:pl-6 xl:pr-8">
+          <div className="w-full max-w-[32.5rem]">
+            <div className="rounded-xl border border-white/55 bg-surface px-5 py-6 shadow-[0_24px_70px_rgba(3,12,24,0.38)] sm:px-8 sm:py-8 xl:px-10 xl:py-9">
               <img
                 src={logoFullColor}
                 alt="Phatsema Projects & Supplies"
-                className="h-auto w-64 max-w-[82%]"
+                className="h-auto w-56 max-w-[78%]"
               />
-              <p className="mt-5 text-sm font-medium text-muted">Back-office portal</p>
+              <p className="mt-3.5 text-sm font-medium text-muted">Back-office portal</p>
 
-              <h2 className="mt-7 text-3xl font-semibold tracking-[-0.025em] text-ink">Sign in</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
+              <h2 className="mt-5 text-[1.75rem] font-semibold tracking-[-0.025em] text-ink">Sign in</h2>
+              <p className="mt-1.5 max-w-[26rem] text-sm leading-5 text-muted">
                 Use a demo persona to explore multi-site inventory, transfers, counts, and assets.
               </p>
 
-              <form onSubmit={(event) => void submit(event)} noValidate className="mt-7 space-y-5">
+              <form onSubmit={(event) => void submit(event)} noValidate className="mt-5 space-y-4">
                 {serverError && <ErrorSummary title="Sign-in failed" errors={[serverError]} />}
                 <Field label="Email address" required error={form.formState.errors.email?.message}>
                   <TextField
@@ -218,7 +250,7 @@ export function LoginPage() {
 
               {env.demoMode && (
                 <>
-                  <div className="my-6 flex items-center gap-4" aria-hidden>
+                  <div className="my-5 flex items-center gap-3.5" aria-hidden>
                     <span className="h-px flex-1 bg-line" />
                     <span className="text-[11px] font-medium tracking-[0.09em] text-faint">OR CONTINUE AS</span>
                     <span className="h-px flex-1 bg-line" />
@@ -241,7 +273,7 @@ export function LoginPage() {
                     </Collapsible.Trigger>
                     <Collapsible.Content
                       id="demo-personas-panel"
-                      className="mt-3 overflow-hidden data-[state=open]:animate-fade-in"
+                      className="mt-2.5 overflow-hidden data-[state=open]:animate-fade-in"
                     >
                       {personasOpen && (
                         <>
@@ -249,7 +281,7 @@ export function LoginPage() {
                             Select a persona to fill the form. Shared password:{' '}
                             <code className="font-semibold text-ink">{DEMO_PASSWORD}</code>
                           </p>
-                          <ul className="mt-2 grid max-h-56 gap-2 overflow-y-auto pr-1 scrollbar-thin">
+                          <ul className="mt-2 grid max-h-52 gap-2 overflow-y-auto pr-1 scrollbar-thin">
                             {PERSONAS.map((persona) => (
                               <li key={persona.email}>
                                 {/* eslint-disable-next-line no-restricted-syntax -- composite persona selector */}
@@ -274,7 +306,7 @@ export function LoginPage() {
                 </>
               )}
 
-              <div className="mt-7 flex gap-3 border-t border-line pt-5 text-xs leading-relaxed text-faint">
+              <div className="mt-5 flex gap-2.5 border-t border-line pt-4 text-xs leading-5 text-faint">
                 <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
                 <p>
                   This is a demonstration environment. All names, sites, quantities, and values are
@@ -283,7 +315,7 @@ export function LoginPage() {
               </div>
             </div>
 
-            <p className="mt-5 text-center text-[11px] text-shell-muted">
+            <p className="mt-3 text-center text-[11px] text-shell-muted">
               Phatsema Portal {env.appVersion} · demonstration build
             </p>
           </div>
