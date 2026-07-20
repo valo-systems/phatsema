@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phatsema Portal — Codebase Map</title>
+<style>
+  :root {
+    --canvas:#eef0f2; --surface:#fff; --sunken:#f2f4f5;
+    --ink:#12171d; --ink-2:#3d4754; --muted:#5d6875; --faint:#8a939e;
+    --line:#e2e6e9; --line-2:#c9cfd6;
+    --web:#0b7a5f; --web-soft:#e3f2ec;
+    --api:#205fbd; --api-soft:#e7eefb;
+    --contract:#7a4bbf; --contract-soft:#efe8fa;
+    --warn:#99520a; --warn-soft:#fbf0de;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 20px 80px; }
+  header.page { margin-bottom:28px; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:19px; margin:40px 0 4px; letter-spacing:-.01em; }
+  h3 { font-size:15px; margin:22px 0 8px; }
+  p.lede { color:var(--muted); margin:0; max-width:62ch; }
+  p { max-width:70ch; }
+  .sub { color:var(--muted); font-size:13.5px; margin:2px 0 16px; max-width:70ch; }
+  code, .path { font-family:var(--mono); font-size:12.5px; }
+  .path {
+    background:var(--sunken); border:1px solid var(--line);
+    border-radius:5px; padding:1px 6px; color:var(--ink-2); white-space:nowrap;
+  }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:11px; }
+  .pad { padding:18px 20px; }
+
+  /* legend */
+  .legend { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; }
+  .chip {
+    display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:500;
+    border-radius:999px; padding:4px 12px 4px 9px; border:1px solid;
+  }
+  .dot { width:9px; height:9px; border-radius:999px; }
+  .c-web{ background:var(--web-soft); border-color:#bfe0d3; color:#085c48; }
+  .c-web .dot{ background:var(--web); }
+  .c-api{ background:var(--api-soft); border-color:#c3d6f2; color:#194b91; }
+  .c-api .dot{ background:var(--api); }
+  .c-con{ background:var(--contract-soft); border-color:#d6c6f0; color:#573391; }
+  .c-con .dot{ background:var(--contract); }
+
+  /* three pillars */
+  .pillars { display:grid; grid-template-columns:1fr; gap:14px; margin-top:16px; }
+  @media (min-width:880px){ .pillars { grid-template-columns:1fr 1fr 1fr; } }
+  .pillar { border-top:3px solid; }
+  .pillar h3 { margin:0 0 2px; font-size:15px; }
+  .pillar .who { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .pillar.web { border-color:var(--web); }
+  .pillar.con { border-color:var(--contract); }
+  .pillar.api { border-color:var(--api); }
+  .pillar ul { margin:0; padding-left:0; list-style:none; }
+  .pillar li { padding:5px 0; border-top:1px solid var(--line); font-size:13px; }
+  .pillar li:first-child { border-top:0; }
+  .pillar li span { display:block; color:var(--muted); font-size:12px; margin-top:1px; }
+
+  /* spine */
+  .spine { display:grid; gap:10px; margin-top:14px; }
+  @media (min-width:760px){ .spine { grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; } }
+  .spine-box { background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:12px 14px; }
+  .spine-box b { display:block; font-size:13.5px; }
+  .spine-box em { font-style:normal; color:var(--muted); font-size:12px; }
+  .arrow { text-align:center; color:var(--faint); font-size:18px; }
+  @media (max-width:759px){ .arrow { transform:rotate(90deg); } }
+
+  /* tree */
+  pre.tree {
+    font-family:var(--mono); font-size:12.5px; line-height:1.75; margin:0;
+    background:var(--surface); border:1px solid var(--line); border-radius:11px;
+    padding:18px 20px; overflow-x:auto; color:var(--ink-2);
+  }
+  pre.tree b { color:var(--ink); font-weight:600; }
+  pre.tree i { font-style:normal; color:var(--faint); }
+  pre.tree .t-web{ color:var(--web); font-weight:600; }
+  pre.tree .t-api{ color:var(--api); font-weight:600; }
+  pre.tree .t-con{ color:var(--contract); font-weight:600; }
+
+  /* flow stepper */
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 0; }
+  .tab {
+    font:inherit; font-size:13px; font-weight:500; cursor:pointer;
+    background:var(--surface); border:1px solid var(--line-2); color:var(--ink-2);
+    border-radius:7px; padding:7px 13px;
+  }
+  .tab[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .steps { margin-top:14px; counter-reset:s; }
+  .step {
+    display:grid; grid-template-columns:30px 1fr; gap:14px;
+    padding:14px 0; border-top:1px solid var(--line);
+  }
+  .step:first-child { border-top:0; }
+  .num {
+    counter-increment:s; width:26px; height:26px; border-radius:999px;
+    display:grid; place-items:center; font-size:12px; font-weight:600;
+    background:var(--sunken); color:var(--ink-2); border:1px solid var(--line-2);
+  }
+  .num::before { content:counter(s); }
+  .step.web .num { background:var(--web-soft); border-color:#bfe0d3; color:#085c48; }
+  .step.api .num { background:var(--api-soft); border-color:#c3d6f2; color:#194b91; }
+  .step.con .num { background:var(--contract-soft); border-color:#d6c6f0; color:#573391; }
+  .step h4 { margin:0 0 3px; font-size:14px; font-weight:600; }
+  .step p { margin:4px 0 0; font-size:13.5px; color:var(--muted); max-width:66ch; }
+  .step .path { margin-top:2px; display:inline-block; }
+
+  /* rules */
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13.5px; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--sunken); font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2); }
+  td:first-child { white-space:nowrap; }
+  .yes { color:#197a3f; font-weight:600; }
+  .no { color:#b42323; font-weight:600; }
+
+  .note {
+    border-left:3px solid var(--warn); background:var(--warn-soft);
+    padding:12px 16px; margin-top:14px; border-radius:0 7px 7px 0; font-size:13.5px;
+  }
+  .note b { color:#7a4108; }
+  .key { border-left:3px solid var(--api); background:var(--api-soft); padding:12px 16px; margin-top:14px; border-radius:0 7px 7px 0; font-size:13.5px; }
+
+  footer.page { margin-top:56px; padding-top:16px; border-top:1px solid var(--line); color:var(--faint); font-size:12.5px; }
+
+  @media print {
+    body { background:#fff; }
+    .tab { display:none; }
+    .panel { display:block !important; page-break-inside:avoid; }
+    .panel::before { content:attr(data-title); display:block; font-weight:600; margin:18px 0 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>Phatsema Portal — Codebase Map</h1>
+  <p class="lede">How the parts of this repository connect, and where a change belongs. Every path below is real and can be opened in the repo.</p>
+  <div class="legend">
+    <span class="chip c-web"><span class="dot"></span>Frontend — what the user sees</span>
+    <span class="chip c-con"><span class="dot"></span>Contract — the agreement between them</span>
+    <span class="chip c-api"><span class="dot"></span>Backend — the rules and the data</span>
+  </div>
+</header>
+
+<h2>1. Three parts, one repository</h2>
+<p class="sub">The whole system is one repository with three top-level pieces. They ship together and deploy to a single web address.</p>
+
+<div class="pillars">
+  <div class="card pad pillar web">
+    <h3>apps/web</h3>
+    <p class="who">The screens</p>
+    <ul>
+      <li><b>React application</b><span>Everything the user clicks</span></li>
+      <li><b>Builds to static files</b><span>No server needed to run it</span></li>
+      <li><b>Talks only via the API</b><span>Never touches data directly</span></li>
+    </ul>
+  </div>
+  <div class="card pad pillar con">
+    <h3>packages/contracts</h3>
+    <p class="who">The agreement</p>
+    <ul>
+      <li><b>openapi.yaml</b><span>Defines all 71 endpoints</span></li>
+      <li><b>Generated types</b><span>Frontend types come from here</span></li>
+      <li><b>Written first</b><span>Before either side is built</span></li>
+    </ul>
+  </div>
+  <div class="card pad pillar api">
+    <h3>apps/api</h3>
+    <p class="who">The rules</p>
+    <ul>
+      <li><b>Laravel application</b><span>Decides what is allowed</span></li>
+      <li><b>Owns every business rule</b><span>The screens cannot bypass it</span></li>
+      <li><b>Holds the demo data</b><span>In session, no database</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>2. The contract is the spine</h2>
+<p class="sub">This is the single most important relationship. The contract is written first; the frontend's types are generated from it, so the two sides cannot drift apart without the build failing.</p>
+
+<div class="spine">
+  <div class="spine-box"><b>openapi.yaml</b><em>Hand-written. The source of truth.</em></div>
+  <div class="arrow">→</div>
+  <div class="spine-box"><b>generated/api.d.ts</b><em>Generated. Never edited by hand.</em></div>
+  <div class="arrow">→</div>
+  <div class="spine-box"><b>Every frontend API call</b><em>Typed against the contract.</em></div>
+</div>
+
+<div class="key">
+  <b>Why this matters in one sentence:</b> if someone changes the API without updating the contract, the frontend stops compiling — so mismatches are caught at build time instead of in front of a client.
+</div>
+
+<h2>3. Where everything lives</h2>
+<p class="sub">The folders that matter. Anything not listed is configuration or tooling.</p>
+
+<pre class="tree">phatsema/
+├── <span class="t-web">apps/web/</span>                     <i># The screens</i>
+│   └── src/
+│       ├── <b>app/</b>                  <i># Boot: router, providers, navigation shell</i>
+│       │   ├── router.tsx           <i># Every URL → which page</i>
+│       │   ├── providers.tsx        <i># Data caching, tooltips, toasts</i>
+│       │   ├── guards.tsx           <i># "Are you signed in?"</i>
+│       │   └── shell/               <i># Sidebar, top bar, alerts, search</i>
+│       ├── <b>features/</b>             <i># One folder per business area</i>
+│       │   ├── inventory/           <i># Receive, issue, adjust, balances, movements</i>
+│       │   ├── transfers/           <i># Site-to-site stock movement</i>
+│       │   ├── counts/              <i># Stock takes</i>
+│       │   ├── assets/  items/  sites/  reports/  audit/  admin/
+│       │   └── <i>each folder has: pages + api.ts (its own data calls)</i>
+│       └── <b>shared/</b>               <i># Used by every feature</i>
+│           ├── ui/controls/         <i># THE only place controls are defined</i>
+│           ├── ui/                  <i># Table, overlays, badges, states</i>
+│           ├── api/                 <i># The HTTP client + error handling</i>
+│           ├── auth/                <i># Who is signed in, what they may do</i>
+│           └── format/              <i># Dates, quantities, CSV</i>
+│
+├── <span class="t-con">packages/contracts/</span>           <i># The agreement</i>
+│   ├── openapi.yaml             <i># Written by hand — source of truth</i>
+│   └── generated/api.d.ts       <i># Generated — do not edit</i>
+│
+├── <span class="t-api">apps/api/</span>                     <i># The rules</i>
+│   ├── routes/web.php           <i># URL → controller</i>
+│   └── app/
+│       ├── <b>Http/</b>                 <i># The doorway</i>
+│       │   ├── Controllers/         <i># Translate request → response only</i>
+│       │   ├── Requests/            <i># Validate input before anything runs</i>
+│       │   └── Resources/           <i># Shape the JSON going back out</i>
+│       ├── <b>Application/</b>          <i># The use cases (the "verbs")</i>
+│       │   └── Inventory/StockCommandService.php
+│       ├── <b>Domain/</b>               <i># The rules + storage interfaces</i>
+│       │   ├── Inventory/InventoryRepository.php   <i># An interface, not code</i>
+│       │   └── Inventory/Quantity.php              <i># Safe decimal maths</i>
+│       ├── <b>Policies/</b>             <i># Who is allowed to do what</i>
+│       └── <b>Infrastructure/DemoStore/</b>  <i># The swappable storage</i>
+│
+├── docs/                        <i># 13 written documents</i>
+├── scripts/                     <i># Build, release, verification</i>
+└── release/                     <i># The packaged upload for hosting</i>
+</pre>
+
+<h2>4. Follow one real request</h2>
+<p class="sub">Pick a flow and follow it from the click to the saved record. These are the actual files involved.</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-target="f-receive">Receiving stock</button>
+  <button class="tab" role="tab" aria-selected="false" data-target="f-list">Viewing a list</button>
+  <button class="tab" role="tab" aria-selected="false" data-target="f-auth">Signing in</button>
+</div>
+
+<div class="card pad panel" id="f-receive" data-title="Flow: receiving stock">
+  <div class="steps">
+    <div class="step web"><div class="num"></div><div>
+      <h4>The user fills in the form</h4>
+      <span class="path">apps/web/src/features/inventory/ReceivePage.tsx</span>
+      <p>Site, location, supplier reference, and item lines. Controls come from the shared folder, so this page defines no inputs of its own.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>They confirm on a review step</h4>
+      <p>Posting stock cannot be undone, so the form shows exactly what will change before anything is sent.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>The feature sends the request</h4>
+      <span class="path">apps/web/src/features/inventory/api.ts</span>
+      <p>Each feature owns its own data calls. It uses the shared client at <span class="path">shared/api/client.ts</span>, which attaches the security token.</p>
+    </div></div>
+    <div class="step con"><div class="num"></div><div>
+      <h4>The contract types the call</h4>
+      <span class="path">packages/contracts/openapi.yaml</span>
+      <p>The shape of this request was agreed here first. A wrong field name fails to compile.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The route receives it and checks permission</h4>
+      <span class="path">apps/api/routes/web.php</span>
+      <p><code>POST /api/v1/receipts</code> requires the <code>inventory.receive</code> permission before the request goes any further.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>Input is validated</h4>
+      <span class="path">apps/api/app/Http/Requests/Inventory/ReceiptRequest.php</span>
+      <p>Runs before any business code. Bad input never reaches the rules.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The controller hands off immediately</h4>
+      <span class="path">apps/api/app/Http/Controllers/Api/V1/StockActionsController.php</span>
+      <p>It contains no business logic — it only passes the request on and returns the result.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The use case does the work</h4>
+      <span class="path">apps/api/app/Application/Inventory/StockCommandService.php</span>
+      <p>Checks the user may act on that site, generates a reference, applies the stock rules, writes ledger entries, and records an audit event — all inside one transaction.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>Storage is written through an interface</h4>
+      <span class="path">apps/api/app/Domain/Inventory/InventoryRepository.php</span>
+      <p>The use case asks for an <em>interface</em>, never a specific database. This is what makes the storage swappable.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The demo store fulfils it</h4>
+      <span class="path">apps/api/app/Infrastructure/DemoStore/DemoStore.php</span>
+      <p>Saves into the browser session. Replace this one class with a database version and nothing above changes.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>The screen refreshes itself</h4>
+      <p>The response returns as JSON, cached lists are marked stale, and balances and the ledger update automatically.</p>
+    </div></div>
+  </div>
+</div>
+
+<div class="card pad panel" id="f-list" data-title="Flow: viewing a list" hidden>
+  <div class="steps">
+    <div class="step web"><div class="num"></div><div>
+      <h4>The URL holds the view</h4>
+      <span class="path">apps/web/src/shared/hooks/useTableState.ts</span>
+      <p>Search, filters, sorting, and page number all live in the web address — so any view can be copied and shared, and the back button works.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>One shared toolbar</h4>
+      <span class="path">apps/web/src/shared/ui/data/DataToolbar.tsx</span>
+      <p>Every list page uses the same search and filter bar. On a phone the filters collapse into a drawer.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>One shared table</h4>
+      <span class="path">apps/web/src/shared/ui/DataTable.tsx</span>
+      <p>Sorting, paging, loading skeletons, empty and error states, and CSV export all live here once, not on each page.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The backend filters by permission</h4>
+      <p>The list is trimmed to the sites this user may see. Hiding a button on screen is convenience; this is the real enforcement.</p>
+    </div></div>
+  </div>
+  <div class="note"><b>The point:</b> ten list pages, one table and one toolbar. A fix to either improves every page at once.</div>
+</div>
+
+<div class="card pad panel" id="f-auth" data-title="Flow: signing in" hidden>
+  <div class="steps">
+    <div class="step web"><div class="num"></div><div>
+      <h4>Sign-in screen</h4>
+      <span class="path">apps/web/src/features/auth/LoginPage.tsx</span>
+      <p>In demo mode it also offers the five personas, so a reviewer can switch roles without needing accounts.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The server creates a session</h4>
+      <p>A secure cookie is set. No token is stored in the browser where a script could read it.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>The app loads who you are</h4>
+      <span class="path">apps/web/src/shared/auth/session.ts</span>
+      <p>Name, roles, permissions, and assigned sites. The navigation is built from this, so people only see what they can use.</p>
+    </div></div>
+    <div class="step web"><div class="num"></div><div>
+      <h4>Every page is guarded</h4>
+      <span class="path">apps/web/src/app/guards.tsx</span>
+      <p>Signed-out visitors are sent to sign-in and returned to where they were headed. If the session expires mid-use, the app says so rather than failing silently.</p>
+    </div></div>
+    <div class="step api"><div class="num"></div><div>
+      <h4>The backend checks again anyway</h4>
+      <span class="path">apps/api/app/Policies/</span>
+      <p>Six policies, deny by default. Every single request is re-checked; the screen is never trusted.</p>
+    </div></div>
+  </div>
+</div>
+
+<h2>5. The one rule that keeps it tidy</h2>
+<p class="sub">Dependencies point in one direction only. This is what stops the codebase turning into a knot.</p>
+
+<table>
+  <thead><tr><th>This part…</th><th>may use…</th><th>may not use…</th></tr></thead>
+  <tbody>
+    <tr><td><b>A feature</b><br><span class="path">features/inventory</span></td><td><span class="yes">Shared</span> — controls, table, client, formatting</td><td><span class="no">Another feature's internals.</span> Inventory must not reach inside transfers.</td></tr>
+    <tr><td><b>Shared</b><br><span class="path">shared/</span></td><td><span class="yes">Other shared code</span> only</td><td><span class="no">Any feature.</span> If shared needed a feature, it would not be shared.</td></tr>
+    <tr><td><b>Controller</b></td><td><span class="yes">Application services</span></td><td><span class="no">Business rules.</span> Controllers translate; they do not decide.</td></tr>
+    <tr><td><b>Application</b></td><td><span class="yes">Domain interfaces</span></td><td><span class="no">A specific database.</span> It asks for storage, never names one.</td></tr>
+    <tr><td><b>Domain</b></td><td><span class="yes">Nothing outside itself</span></td><td><span class="no">Laravel, HTTP, storage.</span> Pure rules, so they are easy to test.</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>How this is enforced, not just intended:</b> raw dropdowns, text boxes, checkboxes and buttons are banned everywhere except <span class="path">shared/ui/controls/</span>. The rule runs in the build, so the design system cannot quietly drift.
+</div>
+
+<h2>6. The swap point</h2>
+<p class="sub">The demo has no database. Understanding this one line explains how it becomes a real system.</p>
+
+<pre class="tree">apps/api/app/Providers/AppServiceProvider.php
+
+  InventoryRepository::class   ┐
+  CatalogueRepository::class   │
+  TransferRepository::class    ├──→  <b>DemoStore</b>   <i># today: browser session</i>
+  AuditRepository::class       │
+  …14 interfaces in total      ┘</pre>
+
+<p>Fourteen storage interfaces currently all point at one class. Point them at a database version instead and the swap is complete — <b>no controller, rule, screen, or contract changes</b>. That portability was the main architectural requirement, and it is why the demo is not throwaway work.</p>
+
+<div class="note">
+  <b>Worth saying out loud in a demo:</b> data lives only in the browser session. Closing the browser or pressing “Reset demo” restores the original example data. That is deliberate, so anyone can experiment without consequences — and so no one mistakes example figures for real stock.
+</div>
+
+<h2>7. Where to make a change</h2>
+<table>
+  <thead><tr><th>If you want to…</th><th>Go to…</th></tr></thead>
+  <tbody>
+    <tr><td>Change wording or layout of one screen</td><td><span class="path">apps/web/src/features/…</span></td></tr>
+    <tr><td>Change how a dropdown or input looks everywhere</td><td><span class="path">apps/web/src/shared/ui/controls/</span></td></tr>
+    <tr><td>Change colours, spacing, or sizing globally</td><td><span class="path">apps/web/src/styles/app.css</span></td></tr>
+    <tr><td>Change how every table behaves</td><td><span class="path">apps/web/src/shared/ui/DataTable.tsx</span></td></tr>
+    <tr><td>Add or change an endpoint</td><td><span class="path">packages/contracts/openapi.yaml</span> <i>first</i>, then the API</td></tr>
+    <tr><td>Change a business rule</td><td><span class="path">apps/api/app/Application/…</span></td></tr>
+    <tr><td>Change who may do what</td><td><span class="path">apps/api/app/Policies/</span></td></tr>
+    <tr><td>Change the example data</td><td><span class="path">apps/api/resources/demo/v1/</span></td></tr>
+    <tr><td>Move to a real database</td><td>Replace <span class="path">Infrastructure/DemoStore/</span></td></tr>
+  </tbody>
+</table>
+
+<footer class="page">
+  Phatsema Portal — codebase map. Generated from the repository at commit <code>c651127d</code>, 19 July 2026.
+  Repository documents under <span class="path">docs/</span> remain authoritative for technical detail.
+</footer>
+
+</div>
+
+<script>
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (other) {
+        other.setAttribute('aria-selected', String(other === tab));
+        document.getElementById(other.dataset.target).hidden = other !== tab;
+      });
+    });
+  });
+</script>
+</body>
+</html>

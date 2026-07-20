@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phatsema Portal — Interactive Codebase Map</title>
+<style>
+  :root{
+    --canvas:#eef0f2; --surface:#fff; --sunken:#f2f4f5;
+    --ink:#12171d; --ink-2:#3d4754; --muted:#5d6875; --faint:#8a939e;
+    --line:#e2e6e9; --line-2:#c9cfd6;
+    --web:#0b7a5f; --web-bg:#e3f2ec; --web-br:#a9d8c6;
+    --api:#205fbd; --api-bg:#e7eefb; --api-br:#b6cef2;
+    --con:#7a4bbf; --con-bg:#efe8fa; --con-br:#cfbcec;
+    --root:#12171d;
+    --hot:#c2410c; --hot-bg:#fff1e8; --hot-br:#f5c4a4;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;background:var(--canvas);color:var(--ink);
+    font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .app{display:flex;flex-direction:column;height:100vh;}
+
+  /* ---- top bar ---- */
+  .bar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    padding:11px 16px;background:var(--surface);border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .brand{font-size:14.5px;font-weight:600;letter-spacing:-.01em;margin-right:4px;}
+  .brand span{font-weight:400;color:var(--muted);}
+  .sep{width:1px;height:22px;background:var(--line);}
+  .lbl{font-size:12px;color:var(--muted);font-weight:500;}
+  button{
+    font:inherit;font-size:13px;font-weight:500;cursor:pointer;
+    background:var(--surface);border:1px solid var(--line-2);color:var(--ink-2);
+    border-radius:7px;padding:6px 12px;transition:background .12s,border-color .12s;
+  }
+  button:hover{background:var(--sunken);border-color:var(--faint);}
+  button.flow[aria-pressed="true"]{background:var(--hot);border-color:var(--hot);color:#fff;}
+  button.ghost{border-color:transparent;background:transparent;color:var(--muted);}
+  button.ghost:hover{background:var(--sunken);color:var(--ink);}
+  .spacer{flex:1;}
+  .legend{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
+    border-radius:999px;padding:3px 10px 3px 7px;border:1px solid;
+  }
+  .dot{width:8px;height:8px;border-radius:999px;}
+  .k-web{background:var(--web-bg);border-color:var(--web-br);color:#085c48;}.k-web .dot{background:var(--web);}
+  .k-con{background:var(--con-bg);border-color:var(--con-br);color:#573391;}.k-con .dot{background:var(--con);}
+  .k-api{background:var(--api-bg);border-color:var(--api-br);color:#194b91;}.k-api .dot{background:var(--api);}
+
+  /* ---- main ---- */
+  .main{flex:1;display:flex;min-height:0;}
+  .stage{flex:1;position:relative;overflow:hidden;cursor:grab;}
+  .stage.drag{cursor:grabbing;}
+  .world{position:absolute;top:0;left:0;transform-origin:0 0;}
+  svg.links{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+  svg.links path{fill:none;stroke:var(--line-2);stroke-width:1.6;transition:stroke .2s,stroke-width .2s,opacity .2s;}
+  svg.links path.on{stroke:var(--hot);stroke-width:2.6;}
+  svg.links path.dim{opacity:.18;}
+
+  .node{
+    position:absolute;display:flex;align-items:center;gap:8px;
+    background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
+    padding:8px 12px;cursor:pointer;white-space:nowrap;
+    box-shadow:0 1px 2px rgb(16 24 32/.05);
+    transition:box-shadow .15s,border-color .15s,opacity .2s,transform .15s;
+  }
+  .node:hover{border-color:var(--faint);box-shadow:0 2px 8px rgb(16 24 32/.09);}
+  .node .t{font-size:13.5px;font-weight:500;line-height:1.25;}
+  .node .s{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:1px;}
+  .node .caret{
+    font-size:10px;color:var(--faint);margin-left:2px;
+    transition:transform .18s;display:inline-block;
+  }
+  .node.open .caret{transform:rotate(90deg);}
+  .node.dim{opacity:.25;}
+  .node.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink);}
+  .node.on{
+    border-color:var(--hot);box-shadow:0 0 0 2px var(--hot-br);
+    background:var(--hot-bg);
+  }
+  .node.on .stepno{background:var(--hot);color:#fff;border-color:var(--hot);}
+  .stepno{
+    display:none;width:19px;height:19px;border-radius:999px;
+    font-size:10.5px;font-weight:700;align-items:center;justify-content:center;
+    border:1px solid var(--line-2);background:var(--sunken);color:var(--muted);flex-shrink:0;
+  }
+  .node.on .stepno,.node.done .stepno{display:inline-flex;}
+  .node.done{border-color:var(--hot-br);}
+  .node.root{background:var(--root);border-color:var(--root);color:#fff;padding:11px 16px;}
+  .node.root .s{color:#9aa4b0;}
+  .node.root .caret{color:#7d8894;}
+  .node.web{background:var(--web-bg);border-color:var(--web-br);}
+  .node.con{background:var(--con-bg);border-color:var(--con-br);}
+  .node.api{background:var(--api-bg);border-color:var(--api-br);}
+  .node.web.on,.node.con.on,.node.api.on{background:var(--hot-bg);}
+
+  /* ---- detail panel ---- */
+  .panel{
+    width:340px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .panel-h{padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  .panel-h .kind{
+    display:inline-block;font-size:11px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;padding:2px 8px;border-radius:999px;margin-bottom:8px;
+  }
+  .kind.web{background:var(--web-bg);color:#085c48;}
+  .kind.con{background:var(--con-bg);color:#573391;}
+  .kind.api{background:var(--api-bg);color:#194b91;}
+  .kind.root{background:var(--sunken);color:var(--ink-2);}
+  .panel-h h2{margin:0;font-size:17px;letter-spacing:-.01em;}
+  .panel-b{padding:16px 18px;overflow-y:auto;flex:1;}
+  .panel-b p{margin:0 0 12px;font-size:13.5px;line-height:1.6;color:var(--ink-2);}
+  .panel-b .why{color:var(--muted);}
+  .pathbox{
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-2);
+    background:var(--sunken);border:1px solid var(--line);border-radius:6px;
+    padding:8px 10px;margin:0 0 14px;word-break:break-all;line-height:1.5;
+  }
+  .panel-b h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 7px;}
+  .kids{list-style:none;margin:0;padding:0;}
+  .kids li{
+    padding:7px 9px;border:1px solid var(--line);border-radius:6px;margin-bottom:5px;
+    font-size:12.5px;cursor:pointer;color:var(--ink-2);
+  }
+  .kids li:hover{background:var(--sunken);border-color:var(--line-2);}
+  .empty{color:var(--faint);font-size:13px;font-style:italic;}
+
+  /* flow strip */
+  .flowbar{
+    padding:11px 18px;border-top:1px solid var(--line);background:var(--sunken);
+    display:none;flex-shrink:0;
+  }
+  .flowbar.show{display:block;}
+  .flowbar .ft{font-size:12px;font-weight:600;color:var(--hot);margin:0 0 3px;}
+  .flowbar .fs{font-size:13px;color:var(--ink-2);margin:0 0 10px;line-height:1.5;}
+  .fnav{display:flex;align-items:center;gap:8px;}
+  .fcount{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  .hint{
+    position:absolute;left:16px;bottom:14px;font-size:12px;color:var(--faint);
+    background:rgb(255 255 255/.85);padding:5px 10px;border-radius:6px;pointer-events:none;
+  }
+  @media (max-width:900px){
+    .panel{position:absolute;right:0;top:0;bottom:0;width:300px;z-index:5;box-shadow:-4px 0 16px rgb(16 24 32/.1);}
+    .hint{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="bar">
+    <div class="brand">Phatsema Portal <span>— codebase map</span></div>
+    <div class="sep"></div>
+    <span class="lbl">Play a flow:</span>
+    <button class="flow" data-flow="receive" aria-pressed="false">Receive stock</button>
+    <button class="flow" data-flow="list" aria-pressed="false">View a list</button>
+    <button class="flow" data-flow="auth" aria-pressed="false">Sign in</button>
+    <div class="sep"></div>
+    <button class="ghost" id="expand">Expand all</button>
+    <button class="ghost" id="collapse">Collapse</button>
+    <button class="ghost" id="reset">Reset view</button>
+    <div class="spacer"></div>
+    <div class="legend">
+      <span class="chip k-web"><span class="dot"></span>Frontend</span>
+      <span class="chip k-con"><span class="dot"></span>Contract</span>
+      <span class="chip k-api"><span class="dot"></span>Backend</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stage" id="stage">
+      <div class="world" id="world">
+        <svg class="links" id="links"></svg>
+      </div>
+      <div class="hint">Click a node to expand · drag to pan · scroll to zoom</div>
+    </div>
+
+    <aside class="panel">
+      <div class="panel-h">
+        <span class="kind root" id="d-kind">Overview</span>
+        <h2 id="d-title">Phatsema Portal</h2>
+      </div>
+      <div class="panel-b" id="d-body"></div>
+      <div class="flowbar" id="flowbar">
+        <p class="ft" id="f-title"></p>
+        <p class="fs" id="f-step"></p>
+        <div class="fnav">
+          <button id="f-prev">← Back</button>
+          <button id="f-next">Next step →</button>
+          <span class="fcount" id="f-count"></span>
+          <div class="spacer"></div>
+          <button class="ghost" id="f-exit">Exit</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* ============ the map ============ */
+const TREE = {
+  id:'root', kind:'root', label:'Phatsema Portal', sub:'One repository, three parts',
+  path:'phatsema/',
+  what:'A multi-site inventory back-office. One repository holds the screens, the agreement between the two sides, and the rules.',
+  why:'Shipping them together means the frontend and backend can never fall out of step, and the whole thing deploys to a single web address on ordinary hosting.',
+  open:true,
+  children:[
+    { id:'web', kind:'web', label:'apps/web', sub:'The screens', path:'apps/web/',
+      what:'The React application. Everything a user sees and clicks.',
+      why:'It builds to plain static files, so the hosting does not need to run anything special to serve it.',
+      children:[
+        { id:'web-app', kind:'web', label:'app/', sub:'Boot and shell', path:'apps/web/src/app/',
+          what:'Starts the application and holds the frame around every page.',
+          why:'Kept separate from features so navigation and sign-in rules live in exactly one place.',
+          children:[
+            { id:'router', kind:'web', label:'router.tsx', sub:'URL → page', path:'apps/web/src/app/router.tsx',
+              what:'Maps every web address to the page that should render.',
+              why:'Pages load only when first visited, so the initial screen stays fast.'},
+            { id:'guards', kind:'web', label:'guards.tsx', sub:'Signed in?', path:'apps/web/src/app/guards.tsx',
+              what:'Blocks pages for signed-out visitors and returns them where they were headed after signing in.',
+              why:'Also catches a session expiring mid-use and says so, instead of failing silently.'},
+            { id:'providers', kind:'web', label:'providers.tsx', sub:'Shared services', path:'apps/web/src/app/providers.tsx',
+              what:'Sets up data caching, notifications, and the selected-site context.',
+              why:'One place to configure how the whole app fetches and retries.'},
+            { id:'shell', kind:'web', label:'shell/', sub:'Sidebar and top bar', path:'apps/web/src/app/shell/',
+              what:'Navigation, site selector, alerts menu, search palette, and the user menu.',
+              why:'The menu is built from your permissions, so people only see what they can actually use.'}
+          ]},
+        { id:'features', kind:'web', label:'features/', sub:'One folder per area', path:'apps/web/src/features/',
+          what:'Thirteen business areas. Each owns its pages and its own data calls.',
+          why:'A change to transfers cannot accidentally break stock counts, because they do not share internals.',
+          children:[
+            { id:'f-inv', kind:'web', label:'inventory/', sub:'Receive, issue, adjust', path:'apps/web/src/features/inventory/',
+              what:'Receiving, issuing, adjusting, plus balances and the movement ledger.',
+              why:'These are the screens that actually change stock, so each ends with a review step before posting.'},
+            { id:'f-trf', kind:'web', label:'transfers/', sub:'Site to site', path:'apps/web/src/features/transfers/',
+              what:'Moving stock between sites: request, approve, dispatch, receive.',
+              why:'Split across two people at two sites, so the screen always shows whose turn it is.'},
+            { id:'f-cnt', kind:'web', label:'counts/', sub:'Stock takes', path:'apps/web/src/features/counts/',
+              what:'Counting sheets, variance review, recounts, and posting.',
+              why:'Supports blind counting, where the counter cannot see the expected figure.'},
+            { id:'f-rest', kind:'web', label:'items · assets · sites', sub:'reports · audit · admin', path:'apps/web/src/features/',
+              what:'The catalogue, controlled equipment, site directory, reporting, audit trail, and administration.',
+              why:'All list-style pages, so they share one table and one filter bar.'}
+          ]},
+        { id:'shared', kind:'web', label:'shared/', sub:'Used by every feature', path:'apps/web/src/shared/',
+          what:'Everything more than one feature needs.',
+          why:'Fix something here and every page improves at once.',
+          children:[
+            { id:'controls', kind:'web', label:'ui/controls/', sub:'THE control library', path:'apps/web/src/shared/ui/controls/',
+              what:'Every dropdown, text box, date picker, checkbox and button in the product.',
+              why:'A build rule bans these elements anywhere else, so the design cannot quietly drift out of line.'},
+            { id:'table', kind:'web', label:'ui/DataTable.tsx', sub:'Every list', path:'apps/web/src/shared/ui/DataTable.tsx',
+              what:'Sorting, paging, loading skeletons, empty and error states, CSV export.',
+              why:'Ten list pages, one table. Improve it once, ten pages get better.'},
+            { id:'toolbar', kind:'web', label:'ui/data/DataToolbar.tsx', sub:'Search and filters', path:'apps/web/src/shared/ui/data/DataToolbar.tsx',
+              what:'The search box and filter row attached to the top of every list.',
+              why:'On a phone the filters collapse into a drawer, so the table never scrolls sideways.'},
+            { id:'client', kind:'web', label:'api/client.ts', sub:'All HTTP calls', path:'apps/web/src/shared/api/client.ts',
+              what:'The single place requests leave the browser. Attaches the security token and normalises errors.',
+              why:'One choke point means security and error handling cannot be forgotten on a page.'},
+            { id:'sessionjs', kind:'web', label:'auth/session.ts', sub:'Who is signed in', path:'apps/web/src/shared/auth/session.ts',
+              what:'Current user, roles, permissions, and assigned sites.',
+              why:'Drives which menu items and buttons appear.'},
+            { id:'tablestate', kind:'web', label:'hooks/useTableState.ts', sub:'Filters live in the URL', path:'apps/web/src/shared/hooks/useTableState.ts',
+              what:'Search, filters, sorting and page number are stored in the web address.',
+              why:'Any view can be copied and shared, and the back button behaves properly.'}
+          ]}
+      ]},
+
+    { id:'con', kind:'con', label:'packages/contracts', sub:'The agreement', path:'packages/contracts/',
+      what:'The written agreement between the screens and the rules.',
+      why:'This is the spine of the whole project. It is written before either side is built.',
+      children:[
+        { id:'openapi', kind:'con', label:'openapi.yaml', sub:'Source of truth', path:'packages/contracts/openapi.yaml',
+          what:'Defines all 71 endpoints: their addresses, inputs, outputs, and errors.',
+          why:'Written by hand and agreed first. If it is not in here, it does not exist.'},
+        { id:'gen', kind:'con', label:'generated/api.d.ts', sub:'Never edited by hand', path:'packages/contracts/generated/api.d.ts',
+          what:'Types generated automatically from the contract and used by every frontend call.',
+          why:'Change the API without the contract and the frontend stops compiling — so mismatches are caught at build time, not in front of a client.'}
+      ]},
+
+    { id:'api', kind:'api', label:'apps/api', sub:'The rules', path:'apps/api/',
+      what:'The Laravel application. Decides what is allowed and holds the data.',
+      why:'Every rule lives here. The screens can hide a button, but only this can actually stop an action.',
+      children:[
+        { id:'routes', kind:'api', label:'routes/web.php', sub:'URL → controller', path:'apps/api/routes/web.php',
+          what:'Maps each address to a controller and states the permission required.',
+          why:'Permission is checked here first, before any business code runs.'},
+        { id:'http', kind:'api', label:'Http/', sub:'The doorway', path:'apps/api/app/Http/',
+          what:'Where requests arrive and responses leave.',
+          why:'Deliberately thin. Nothing here decides anything.',
+          children:[
+            { id:'ctrl', kind:'api', label:'Controllers/', sub:'Translate only', path:'apps/api/app/Http/Controllers/Api/V1/',
+              what:'Twenty-three controllers that pass work on and return the result.',
+              why:'No business logic, so rules cannot end up duplicated across endpoints.'},
+            { id:'req', kind:'api', label:'Requests/', sub:'Validate input', path:'apps/api/app/Http/Requests/',
+              what:'Thirty-one validators that run before anything else.',
+              why:'Bad input never reaches the rules at all.'},
+            { id:'res', kind:'api', label:'Resources/', sub:'Shape the reply', path:'apps/api/app/Http/Resources/',
+              what:'Decides exactly which fields go back out as JSON.',
+              why:'Internal objects are never returned directly, so nothing leaks by accident.'}
+          ]},
+        { id:'appl', kind:'api', label:'Application/', sub:'The use cases', path:'apps/api/app/Application/',
+          what:'The verbs of the system: receive, issue, adjust, dispatch, post a count.',
+          why:'One place per action, so the whole rule is readable top to bottom.',
+          children:[
+            { id:'stockcmd', kind:'api', label:'StockCommandService.php', sub:'Posts stock', path:'apps/api/app/Application/Inventory/StockCommandService.php',
+              what:'Checks permission for the site, generates a reference, applies the stock rules, writes ledger entries, and records an audit event.',
+              why:'All inside one transaction — so a half-finished stock movement cannot exist.'}
+          ]},
+        { id:'domain', kind:'api', label:'Domain/', sub:'Rules and interfaces', path:'apps/api/app/Domain/',
+          what:'The pure business rules, plus the storage interfaces.',
+          why:'Knows nothing about the web or any database, which makes it simple to test and hard to break.',
+          children:[
+            { id:'repo', kind:'api', label:'InventoryRepository.php', sub:'An interface', path:'apps/api/app/Domain/Inventory/InventoryRepository.php',
+              what:'Describes what storage must be able to do, without saying how.',
+              why:'This is the seam that makes the storage swappable.'},
+            { id:'qty', kind:'api', label:'Quantity.php', sub:'Safe decimals', path:'apps/api/app/Domain/Inventory/Quantity.php',
+              what:'Handles quantities as exact decimals, never as ordinary numbers.',
+              why:'Ordinary computer maths drifts by tiny fractions. In a stock ledger that is unacceptable.'}
+          ]},
+        { id:'pol', kind:'api', label:'Policies/', sub:'Who may do what', path:'apps/api/app/Policies/',
+          what:'Six policies covering inventory, transfers, counts, assets, administration and permissions.',
+          why:'Deny by default, and re-checked on every request. The screen is never trusted.'},
+        { id:'store', kind:'api', label:'Infrastructure/DemoStore/', sub:'The swap point', path:'apps/api/app/Infrastructure/DemoStore/DemoStore.php',
+          what:'Today all fourteen storage interfaces point at this one class, which keeps data in the browser session.',
+          why:'Point them at a database version instead and the demo becomes a real system — with no change to any rule, screen, or contract.'},
+        { id:'fixtures', kind:'api', label:'resources/demo/v1/', sub:'Example data', path:'apps/api/resources/demo/v1/',
+          what:'The seeded sites, items, assets, movements, transfers, counts and users.',
+          why:'Every visible reference starts with DEMO- so example figures are never mistaken for real stock.'}
+      ]}
+  ]
+};
+
+/* ============ flows ============ */
+const FLOWS = {
+  receive:{ title:'Receiving stock', steps:[
+    {id:'f-inv', t:'A storekeeper opens the Receive screen and fills in the site, location, supplier reference and item lines.'},
+    {id:'controls', t:'Every input on that form comes from the shared control library. The page defines none of its own.'},
+    {id:'f-inv', t:'They press Review. Posting stock cannot be undone, so the screen shows exactly what will change first.'},
+    {id:'client', t:'On confirm, the request leaves through the single HTTP client, which attaches the security token.'},
+    {id:'openapi', t:'The shape of that request was agreed in the contract first. A wrong field name would not have compiled.'},
+    {id:'routes', t:'The server receives POST /api/v1/receipts and checks the inventory.receive permission before going further.'},
+    {id:'req', t:'The validator runs. Missing sites, bad quantities or unknown items are rejected here, before any rule executes.'},
+    {id:'ctrl', t:'The controller passes the work straight on. It contains no business logic at all.'},
+    {id:'stockcmd', t:'The use case does the real work: confirms site access, generates a DEMO-RCT reference, applies the stock rules, writes the ledger entries and records an audit event — all in one transaction.'},
+    {id:'repo', t:'It saves through the storage interface. It never names a specific database.'},
+    {id:'store', t:'Today the demo store fulfils that, writing into the browser session. Swap this one class and nothing above changes.'},
+    {id:'table', t:'The reply returns as JSON. Cached lists are marked stale, so balances and the ledger refresh on their own.'}
+  ]},
+  list:{ title:'Viewing a list', steps:[
+    {id:'tablestate', t:'The view lives in the web address: search, filters, sort and page. That makes any view shareable and the back button reliable.'},
+    {id:'toolbar', t:'The shared toolbar renders the search box and filters. On a phone they collapse into a drawer.'},
+    {id:'client', t:'A request goes out with those filters attached.'},
+    {id:'routes', t:'The server checks the permission for that resource.'},
+    {id:'pol', t:'The policy trims the results to the sites this person may see. Hiding a row on screen is convenience; this is the real control.'},
+    {id:'table', t:'The shared table renders it — with sorting, paging, loading skeletons, empty and error states, and CSV export all built in once.'}
+  ]},
+  auth:{ title:'Signing in', steps:[
+    {id:'guards', t:'A signed-out visitor is redirected to the sign-in screen, and their intended destination is remembered.'},
+    {id:'routes', t:'They submit credentials. The server creates a session and sets a secure cookie — no token is left where a script could read it.'},
+    {id:'sessionjs', t:'The app loads who they are: name, roles, permissions and assigned sites.'},
+    {id:'shell', t:'The navigation is built from those permissions, so people only see what they can actually use.'},
+    {id:'pol', t:'Every later request is re-checked by the policies anyway. The screen is never trusted on its own.'}
+  ]}
+};
+
+/* ============ build ============ */
+const NODES = new Map();
+(function index(n, parent, depth){
+  n._p = parent; n._d = depth; n._open = !!n.open;
+  NODES.set(n.id, n);
+  (n.children||[]).forEach(c => index(c, n, depth+1));
+})(TREE, null, 0);
+
+const world = document.getElementById('world');
+const linksSvg = document.getElementById('links');
+const stage = document.getElementById('stage');
+let selected = 'root';
+let flow = null, flowIdx = 0;
+
+const NODE_H = 46, GAP_Y = 12, GAP_X = 74;
+
+function visibleChildren(n){ return n._open ? (n.children||[]) : []; }
+
+function layout(){
+  let y = 0;
+  const place = (n, x) => {
+    n._x = x;
+    const kids = visibleChildren(n);
+    if(!kids.length){ n._y = y; y += NODE_H + GAP_Y; return; }
+    const ys = [];
+    kids.forEach(k => { place(k, x + colWidth(n) + GAP_X); ys.push(k._y); });
+    n._y = (ys[0] + ys[ys.length-1]) / 2;
+  };
+  place(TREE, 0);
+}
+function colWidth(n){ return n._w || 190; }
+
+function measure(){
+  NODES.forEach(n => {
+    const el = n._el;
+    if(el) n._w = el.offsetWidth;
+  });
+}
+
+function render(){
+  // create elements once
+  NODES.forEach(n => {
+    if(n._el) return;
+    const el = document.createElement('div');
+    el.className = 'node ' + n.kind + (n.id==='root'?' root':'');
+    el.innerHTML =
+      '<span class="stepno"></span><span class="t">' + n.label +
+      (n.sub ? '<span class="s">' + n.sub + '</span>' : '') + '</span>' +
+      ((n.children&&n.children.length) ? '<span class="caret">▶</span>' : '');
+    el.addEventListener('click', e => { e.stopPropagation(); onNode(n); });
+    world.appendChild(el);
+    n._el = el;
+  });
+  measure(); layout();
+
+  let maxX = 0, maxY = 0;
+  NODES.forEach(n => {
+    const vis = isVisible(n);
+    n._el.style.display = vis ? 'flex' : 'none';
+    if(!vis) return;
+    n._el.style.left = n._x + 'px';
+    n._el.style.top  = n._y + 'px';
+    n._el.classList.toggle('open', !!n._open);
+    n._el.classList.toggle('sel', n.id === selected && !flow);
+    maxX = Math.max(maxX, n._x + n._w); maxY = Math.max(maxY, n._y + NODE_H);
+  });
+
+  // links
+  let d = '';
+  const paths = [];
+  NODES.forEach(n => {
+    if(!isVisible(n) || !n._p || !isVisible(n._p)) return;
+    const p = n._p;
+    const x1 = p._x + p._w, y1 = p._y + NODE_H/2;
+    const x2 = n._x,        y2 = n._y + NODE_H/2;
+    const mx = (x1 + x2) / 2;
+    paths.push({from:p.id, to:n.id, d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`});
+  });
+  linksSvg.innerHTML = paths.map(p =>
+    `<path data-from="${p.from}" data-to="${p.to}" d="${p.d}"></path>`).join('');
+  linksSvg.setAttribute('width', maxX + 40);
+  linksSvg.setAttribute('height', maxY + 40);
+
+  if(flow) paintFlow();
+}
+
+function isVisible(n){
+  let p = n._p;
+  while(p){ if(!p._open) return false; p = p._p; }
+  return true;
+}
+
+function onNode(n){
+  if(n.children && n.children.length){ n._open = !n._open; }
+  selected = n.id;
+  if(flow){ exitFlow(); }
+  showDetail(n); render();
+}
+
+/* ---- detail ---- */
+function showDetail(n){
+  document.getElementById('d-kind').className = 'kind ' + n.kind;
+  document.getElementById('d-kind').textContent =
+    n.kind==='web'?'Frontend':n.kind==='api'?'Backend':n.kind==='con'?'Contract':'Overview';
+  document.getElementById('d-title').textContent = n.label;
+  const b = document.getElementById('d-body');
+  let html = '<div class="pathbox">' + n.path + '</div>';
+  html += '<p>' + n.what + '</p>';
+  html += '<p class="why"><strong>Why it is like this:</strong> ' + n.why + '</p>';
+  if(n.children && n.children.length){
+    html += '<h3>Contains</h3><ul class="kids">';
+    n.children.forEach(c => { html += '<li data-go="'+c.id+'">'+c.label+' — '+(c.sub||'')+'</li>'; });
+    html += '</ul>';
+  }
+  b.innerHTML = html;
+  b.querySelectorAll('[data-go]').forEach(li => {
+    li.addEventListener('click', () => {
+      const t = NODES.get(li.dataset.go);
+      let p = t._p; while(p){ p._open = true; p = p._p; }
+      selected = t.id; showDetail(t); render(); focusNode(t);
+    });
+  });
+}
+
+/* ---- flows ---- */
+function startFlow(key){
+  flow = key; flowIdx = 0;
+  document.querySelectorAll('button.flow').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.flow === key)));
+  document.getElementById('flowbar').classList.add('show');
+  document.getElementById('f-title').textContent = FLOWS[key].title;
+  // open every ancestor of every step
+  FLOWS[key].steps.forEach(s => {
+    let p = NODES.get(s.id); p = p && p._p;
+    while(p){ p._open = true; p = p._p; }
+  });
+  render(); goStep(0);
+}
+function exitFlow(){
+  flow = null;
+  document.querySelectorAll('button.flow').forEach(b => b.setAttribute('aria-pressed','false'));
+  document.getElementById('flowbar').classList.remove('show');
+  NODES.forEach(n => n._el && n._el.classList.remove('on','done','dim'));
+  linksSvg.querySelectorAll('path').forEach(p => p.classList.remove('on','dim'));
+  render();
+}
+function goStep(i){
+  const steps = FLOWS[flow].steps;
+  flowIdx = Math.max(0, Math.min(i, steps.length - 1));
+  document.getElementById('f-step').textContent = steps[flowIdx].t;
+  document.getElementById('f-count').textContent = (flowIdx+1) + ' of ' + steps.length;
+  document.getElementById('f-prev').disabled = flowIdx === 0;
+  document.getElementById('f-next').disabled = flowIdx === steps.length - 1;
+  paintFlow();
+  const n = NODES.get(steps[flowIdx].id);
+  if(n){ showDetail(n); focusNode(n); }
+}
+function paintFlow(){
+  if(!flow) return;
+  const steps = FLOWS[flow].steps;
+  const active = steps[flowIdx].id;
+  const seen = new Set(steps.slice(0, flowIdx+1).map(s => s.id));
+  const inFlow = new Set(steps.map(s => s.id));
+
+  NODES.forEach(n => {
+    if(!n._el) return;
+    n._el.classList.toggle('on', n.id === active);
+    n._el.classList.toggle('done', seen.has(n.id) && n.id !== active);
+    n._el.classList.toggle('dim', !inFlow.has(n.id));
+    n._el.classList.remove('sel');
+    // number badge shows position in the flow
+    const idx = steps.findIndex(s => s.id === n.id);
+    const badge = n._el.querySelector('.stepno');
+    if(badge) badge.textContent = idx >= 0 ? String(idx + 1) : '';
+  });
+  linksSvg.querySelectorAll('path').forEach(p => {
+    const lit = inFlow.has(p.dataset.to) && seen.has(p.dataset.to);
+    p.classList.toggle('on', lit);
+    p.classList.toggle('dim', !inFlow.has(p.dataset.to));
+  });
+}
+
+/* ---- pan / zoom ---- */
+let tx = 60, ty = 40, scale = 1;
+function apply(){ world.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
+function focusNode(n){
+  if(!n || !isVisible(n)) return;
+  const r = stage.getBoundingClientRect();
+  tx = r.width/2 - (n._x + n._w/2) * scale;
+  ty = r.height/2 - (n._y + NODE_H/2) * scale;
+  tx = Math.min(tx, 60);
+  apply();
+}
+let dragging=false, sx=0, sy=0;
+stage.addEventListener('mousedown', e => { dragging=true; sx=e.clientX-tx; sy=e.clientY-ty; stage.classList.add('drag'); });
+window.addEventListener('mousemove', e => { if(!dragging) return; tx=e.clientX-sx; ty=e.clientY-sy; apply(); });
+window.addEventListener('mouseup', () => { dragging=false; stage.classList.remove('drag'); });
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.1 : 0.9;
+  const next = Math.max(0.45, Math.min(1.6, scale * f));
+  const r = stage.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  tx = mx - (mx - tx) * (next/scale);
+  ty = my - (my - ty) * (next/scale);
+  scale = next; apply();
+}, {passive:false});
+
+/* ---- controls ---- */
+document.querySelectorAll('button.flow').forEach(b =>
+  b.addEventListener('click', () => flow === b.dataset.flow ? exitFlow() : startFlow(b.dataset.flow)));
+document.getElementById('f-next').addEventListener('click', () => goStep(flowIdx+1));
+document.getElementById('f-prev').addEventListener('click', () => goStep(flowIdx-1));
+document.getElementById('f-exit').addEventListener('click', exitFlow);
+document.getElementById('expand').addEventListener('click', () => {
+  NODES.forEach(n => { if(n.children&&n.children.length) n._open = true; }); render();
+});
+document.getElementById('collapse').addEventListener('click', () => {
+  NODES.forEach(n => { if(n.id!=='root') n._open = false; }); TREE._open = true; render();
+});
+document.getElementById('reset').addEventListener('click', () => {
+  exitFlow();
+  NODES.forEach(n => { n._open = (n.id==='root'); });
+  selected='root'; showDetail(TREE); scale=1; tx=60; ty=40; apply(); render();
+});
+window.addEventListener('keydown', e => {
+  if(!flow) return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); goStep(flowIdx+1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); goStep(flowIdx-1); }
+  if(e.key==='Escape') exitFlow();
+});
+window.addEventListener('resize', render);
+
+/* ---- go ---- */
+TREE._open = true;
+(TREE.children||[]).forEach(c => c._open = true);
+showDetail(TREE); render(); apply();
+</script>
+</body>
+</html>
