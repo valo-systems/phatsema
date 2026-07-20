@@ -10,6 +10,16 @@ export const router = createBrowserRouter([
     HydrateFallback: RouterHydrateFallback,
   },
   {
+    path: '/legal',
+    element: <Navigate to="/legal/privacy" replace />,
+  },
+  {
+    path: '/legal/:documentType',
+    lazy: async () => ({ Component: (await import('@/features/legal/LegalPage')).LegalPage }),
+    ErrorBoundary: AppErrorBoundary,
+    HydrateFallback: RouterHydrateFallback,
+  },
+  {
     ErrorBoundary: AppErrorBoundary,
     Component: RequireAuth,
     HydrateFallback: RouterHydrateFallback,

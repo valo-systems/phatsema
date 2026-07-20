@@ -16,6 +16,7 @@ Use the shortest reading path that matches the work.
 - [Inventory Workflows](inventory-workflows.md)
 - [Demo Data](demo-data.md)
 - [Audit Readiness](audit-readiness.md)
+- [Privacy, POPIA, PAIA, and Portal Notices](privacy-popia.md)
 - [Branding](branding.md)
 
 ## Operate and deploy
