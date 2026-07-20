@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu as MenuIcon,
   RotateCcw,
+  Scale,
   Search,
   UserRound,
   X,
@@ -266,6 +267,13 @@ export function AppShell() {
                     <UserRound aria-hidden className="size-4 text-muted" /> My profile
                   </ArkMenu.Item>
                   <ArkMenu.Item
+                    value="privacy-legal"
+                    onSelect={() => void navigate('/legal/privacy')}
+                    className="flex cursor-default items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-ink outline-none select-none data-[highlighted]:bg-sunken"
+                  >
+                    <Scale aria-hidden className="size-4 text-muted" /> Privacy and legal
+                  </ArkMenu.Item>
+                  <ArkMenu.Item
                     value="about"
                     onSelect={() => setAboutOpen(true)}
                     className="flex cursor-default items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-ink outline-none select-none data-[highlighted]:bg-sunken"
@@ -305,7 +313,12 @@ export function AppShell() {
         </main>
 
         <footer className="border-t border-line px-5 py-3 text-center text-[11px] text-faint">
-          Phatsema Portal {env.appVersion} · demonstration build with illustrative data only.
+          <span>Phatsema Portal {env.appVersion} · demonstration build with illustrative data only.</span>
+          <span className="ml-2 inline-flex gap-2">
+            <Link className="hover:text-muted hover:underline" to="/legal/privacy">Privacy</Link>
+            <Link className="hover:text-muted hover:underline" to="/legal/acceptable-use">Acceptable use</Link>
+            <Link className="hover:text-muted hover:underline" to="/legal/paia">PAIA</Link>
+          </span>
         </footer>
       </div>
 

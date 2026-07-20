@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,7 @@ import { Button, ErrorSummary, Field, IconButton, TextField } from '@/shared/ui/
 import logoFullColor from '@/assets/brand/logo/logo-full-color-transparent.png';
 import logoReversed from '@/assets/brand/logo/logo-full-reversed.png';
 import warehouseHero from '@/assets/auth/warehouse-hero.webp';
+import { LEGAL_NOTICE_VERSION } from '@/features/legal/legal';
 
 const loginSchema = z.object({
   email: z.email('Enter a valid email address'),
@@ -308,15 +309,29 @@ export function LoginPage() {
 
               <div className="mt-5 flex gap-2.5 border-t border-line pt-4 text-xs leading-5 text-faint">
                 <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                <p>
-                  This is a demonstration environment. All names, sites, quantities, and values are
-                  fictional and are not Phatsema operational data.
-                </p>
+                <div>
+                  <p>
+                    This is a demonstration environment. All names, sites, quantities, and values
+                    are fictional and are not Phatsema operational data.
+                  </p>
+                  <p className="mt-2 text-muted">
+                    Access is limited to authorised users and approved demonstration participants.
+                    By signing in, you acknowledge the{' '}
+                    <Link className="font-medium text-primary hover:underline" to="/legal/privacy">
+                      Privacy Notice
+                    </Link>{' '}
+                    and{' '}
+                    <Link className="font-medium text-primary hover:underline" to="/legal/acceptable-use">
+                      Acceptable Use Notice
+                    </Link>
+                    . Activity may be recorded for security, audit, and operational accountability.
+                  </p>
+                </div>
               </div>
             </div>
 
             <p className="mt-3 text-center text-[11px] text-shell-muted">
-              Phatsema Portal {env.appVersion} · demonstration build
+              Phatsema Portal {env.appVersion} · demonstration build · legal {LEGAL_NOTICE_VERSION}
             </p>
           </div>
         </section>
